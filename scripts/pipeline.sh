@@ -66,6 +66,17 @@ function download_build_db() {
   local cache_path=$3
   local force=$4
 
+  local db_path="$pipeline_path/build-db"
+
+  if [ ! -d "$db_path" ] || [ ! -z "$force" ]; then
+    rm -rf "$db_path"
+    mkdir -p "$db_path"
+
+    echo 'Downloading the output of the build db step instead of computing it...'
+    wget -q --show-progress -O "$pipeline_path/build-db.zip" 'https://s3-eu-west-1.amazonaws.com/fever.public/build-db.zip'
+    unzip -j "$pipeline_path/build-db.zip" -d "$db_path"
+    rm "$pipeline_path/build-db.zip"
+  fi
 }
 
 
@@ -99,6 +110,17 @@ function download_document_retrieval() {
   local cache_path=$3
   local force=$4
 
+  local doc_ret_path="$pipeline_path/document-retrieval"
+
+  if [ ! -d "$doc_ret_path" ] || [ ! -z "$force" ]; then
+    rm -rf "$doc_ret_path"
+    mkdir -p "$doc_ret_path"
+
+    echo 'Downloading the output of the document retrieval step instead of computing it...'
+    wget -q --show-progress -O "$pipeline_path/document-retrieval.zip" 'https://s3-eu-west-1.amazonaws.com/fever.public/document-retrieval.zip'
+    unzip -j "$pipeline_path/document-retrieval.zip" -d "$db_path"
+    rm "$pipeline_path/document-retrieval.zip"
+  fi
 }
 
 
@@ -140,6 +162,17 @@ function download_sentence_retrieval() {
   local cache_path=$3
   local force=$4
 
+  local doc_sent_path="$pipeline_path/sentence-retrieval"
+
+  if [ ! -d "$doc_sent_path" ] || [ ! -z "$force" ]; then
+    rm -rf "$doc_sent_path"
+    mkdir -p "$doc_sent_path"
+
+    echo 'Downloading the output of the sentence retrieval step instead of computing it...'
+    wget -q --show-progress -O "$pipeline_path/sentence-retrieval.zip" 'https://s3-eu-west-1.amazonaws.com/fever.public/sentence-retrieval.zip'
+    unzip -j "$pipeline_path/sentence-retrieval.zip" -d "$db_path"
+    rm "$pipeline_path/sentence-retrieval.zip"
+  fi
 }
 
 
@@ -187,6 +220,8 @@ function pipeline_sentence_retrieval() {
         --num_train_epochs 1 \
         --output_dir "$doc_sent_path/model" \
         --cache_dir "$cache_path/transformers"
+
+    # TODO
   fi
 }
 
@@ -198,6 +233,17 @@ function download_claim_verification() {
   local cache_path=$3
   local force=$4
 
+  local doc_claim_path="$pipeline_path/claim-verification"
+
+  if [ ! -d "$doc_claim_path" ] || [ ! -z "$force" ]; then
+    rm -rf "$doc_claim_path"
+    mkdir -p "$doc_claim_path"
+
+    echo 'Downloading the output of the claim verification step instead of computing it...'
+    wget -q --show-progress -O "$pipeline_path/claim-verification.zip" 'https://s3-eu-west-1.amazonaws.com/fever.public/claim-verification.zip'
+    unzip -j "$pipeline_path/claim-verification.zip" -d "$db_path"
+    rm "$pipeline_path/claim-verification.zip"
+  fi
 }
 
 
@@ -208,6 +254,7 @@ function pipeline_claim_verification() {
   local cache_path=$3
   local force=$4
 
+  # TODO
 }
 
 
