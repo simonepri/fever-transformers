@@ -1,72 +1,195 @@
 #!/usr/bin/env bash
 
-PATH_SRC='src'
-PATH_DATA='data'
-
-PATH_S_PIPELINE=$PATH_SRC'/pipeline'
-
-PATH_D_FEVER=$PATH_DATA'/fever'
-PATH_D_PIPELINE=$PATH_DATA'/pipeline'
-PATH_D_CACHE=$PATH_DATA'/cache'
-
-PATH_D_NLTK=$PATH_D_CACHE'/nltk'
-PATH_D_ALLEN=$PATH_D_CACHE'/allen'
-
-PYTHON_ENVS='PYTHONPATH='$PATH_SRC' NLTK_DATA='$PATH_D_NLTK' ALLENNLP_CACHE_ROOT='$PATH_D_ALLEN
-
-if ! hash pipenv; then
-  echo 'You need to install pipenv to run this.'
-  echo 'Check it out at https://github.com/pypa/pipenv.'
-  exit 1
-fi
 
 # Install the dependencies needed to run the python scripts.
-echo 'Install dependencies...'
-pipenv install --skip-lock
+function install_deps() {
+  fever_path=$1
+  pipeline_path=$2
+  cache_path=$3
+  force=$4
 
-# Create necessary directories.
-mkdir -p $PATH_D_NLTK
-mkdir -p $PATH_D_ALLEN
+  venv_path=".venv"
 
-# Construct an SQLite Database from the pre-processed Wikipedia articles into the data folder.
-if [ ! -f $PATH_D_PIPELINE'/build-db/wikipedia.db' ]; then
-  echo 'Constructing an SQLite Database from the pre-processed Wikipedia articles...'
-  mkdir -p $PATH_D_PIPELINE'/build-db'
-  env $PYTHON_ENVS pipenv run python3 $PATH_S_PIPELINE'/build-db/build_db.py' $PATH_D_FEVER'/wikipedia' $PATH_D_PIPELINE'/build-db/wikipedia.db'
+  if [ ! -d "$venv_path" ] || [ -s "$force" ]; then
+    rm -rf "$venv_path"
+    mkdir -p "$venv_path"
 
-  if [ ! "$(ls -A $PATH_D_PIPELINE'/build-db')" ]; then
-    rm -r $PATH_D_PIPELINE'/build-db'
+    if ! hash pipenv; then
+      echo 'You need to install pipenv to run this.'
+      echo 'Check it out at https://github.com/pypa/pipenv.'
+      exit 1
+    fi
+    echo 'Install dependencies...'
+    env "PIPENV_VENV_IN_PROJECT=1" \
+    pipenv install --skip-lock
   fi
-fi
+}
+
+
+# Download the FEVER dataset and the pre-processed Wikipedia articles from the
+# website of the FEVER share task.
+function download_fever() {
+  fever_path=$1
+  pipeline_path=$2
+  cache_path=$3
+  force=$4
+
+  dataset_path="$fever_path/dataset"
+  wikipedia_path="$fever_path/wikipedia"
+
+  if [ ! -d "$dataset_path" ] || [ -s "$force" ]; then
+    rm -rf "$dataset_path"
+    mkdir -p "$dataset_path"
+
+    echo 'Downloading the FEVER dataset...'
+    wget -q --show-progress -O "$dataset_path/train.jsonl" 'https://s3-eu-west-1.amazonaws.com/fever.public/train.jsonl'
+    wget -q --show-progress -O "$dataset_path/dev.jsonl" 'https://s3-eu-west-1.amazonaws.com/fever.public/shared_task_dev.jsonl'
+    wget -q --show-progress -O "$dataset_path/test.jsonl" 'https://s3-eu-west-1.amazonaws.com/fever.public/shared_task_test.jsonl'
+  fi
+
+  if [ ! -d "$wikipedia_path" ] || [ -s "$force" ]; then
+    rm -rf "$wikipedia_path"
+    mkdir -p "$wikipedia_path"
+
+    echo 'Download the FEVER pre-processed Wikipedia articles...'
+    wget -q --show-progress -O "$fever_path/wikipedia.zip" 'https://s3-eu-west-1.amazonaws.com/fever.public/wiki-pages.zip'
+    unzip -j "$fever_path/wikipedia.zip" 'wiki-pages/*' -d "$wikipedia_path"
+    rm "$fever_path/wikipedia.zip"
+  fi
+}
+
+
+# Construct an SQLite Database from the pre-processed Wikipedia articles.
+function pipeline_build_db() {
+  fever_path=$1
+  pipeline_path=$2
+  cache_path=$3
+  force=$4
+
+  db_path="$pipeline_path/build-db"
+  wikipedia_path="$fever_path/wikipedia"
+
+  if [ ! -d "$db_path" ] || [ -s "$force" ]; then
+    rm -rf "$db_path"
+    mkdir -p "$db_path"
+
+    echo 'Constructing an SQLite Database from the pre-processed Wikipedia articles...'
+    env "PYTHONPATH=src" \
+    pipenv run python3 'src/pipeline/build-db/build_db.py' \
+        "$wikipedia_path" \
+        "$db_path/wikipedia.db"
+  fi
+}
+
 
 # Execute the document retrieval step
-if [ ! -d $PATH_D_PIPELINE'/document-retrieval' ]; then
-  K=7
-  echo 'Retrieving the top '$K' documents for each claim...'
-  mkdir -p $PATH_D_PIPELINE'/document-retrieval'
-  for file in $PATH_D_FEVER'/dataset/'{train,dev,test}'.jsonl'; do
-    filename=${file##*/}
-    echo 'Processing claims in '$file'...'
-    env $PYTHON_ENVS pipenv run python3 $PATH_S_PIPELINE'/document-retrieval/document_retrieval.py' --db-file $PATH_D_PIPELINE'/build-db/wikipedia.db' --in-file $PATH_D_FEVER'/dataset/'$filename --out-file $PATH_D_PIPELINE'/document-retrieval/'$filename --max-results=$K
-  done
+function pipeline_document_retrieval() {
+  fever_path=$1
+  pipeline_path=$2
+  cache_path=$3
+  force=$4
 
-  if [ ! "$(ls -A $PATH_D_PIPELINE'/document-retrieval')" ]; then
-    rm -r $PATH_D_PIPELINE'/document-retrieval'
+  doc_ret_path="$pipeline_path/document-retrieval"
+  db_path="$pipeline_path/build-db"
+  dataset_path="$fever_path/dataset"
+
+  if [ ! -d "$doc_ret_path" ] || [ -s "$force" ]; then
+    rm -rf "$doc_ret_path"
+    mkdir -p "$doc_ret_path"
+
+    K=7
+    echo "Retrieving the top $K documents for each claim..."
+    for file in "$dataset_path/"{train,dev,test}'.jsonl'; do
+      filename=${file##*/}
+      echo "Processing claims in $file..."
+      env "PYTHONPATH=src NLTK_DATA=$cache_path/nltk ALLENNLP_CACHE_ROOT=$cache_path/allen" \
+      pipenv run python3 'src/pipeline/document-retrieval/document_retrieval.py' \
+          --db-file "$db_path/wikipedia.db" \
+          --in-file "$dataset_path/$filename" \
+          --out-file "$doc_ret_path/$filename" \
+          --max-results $K
+    done
   fi
-fi
+}
+
 
 # Execute the sentence retrieval step
-if [ ! -d $PATH_D_PIPELINE'/sentence-retrieval' ]; then
-  K=5
-  echo 'Generating the training set for the sentence retrieval model...'
-  mkdir -p $PATH_D_PIPELINE'/sentence-retrieval'
-  for file in $PATH_D_FEVER'/dataset/'{train,dev}'.jsonl'; do
-    filename=${file##*/}
-    echo 'Processing claims in '$file'...'
-    env $PYTHON_ENVS pipenv run python3 $PATH_S_PIPELINE'/sentence-retrieval/sentence_retrieval_generate.py' --db-file $PATH_D_PIPELINE'/build-db/wikipedia.db' --in-file $PATH_D_PIPELINE'/document-retrieval/'$filename --out-file $PATH_D_PIPELINE'/sentence-retrieval/'$filename'.tsv' --max-neg-evidences-per-page $K
-  done
+function pipeline_sentence_retrieval() {
+  fever_path=$1
+  pipeline_path=$2
+  cache_path=$3
+  force=$4
 
-  if [ ! "$(ls -A $PATH_D_PIPELINE'/sentence-retrieval')" ]; then
-    rm -r $PATH_D_PIPELINE'/sentence-retrieval'
+  doc_sent_path="$pipeline_path/sentence-retrieval"
+  db_path="$pipeline_path/build-db"
+  dataset_path="$fever_path/dataset"
+
+  if [ ! -d "$doc_sent_path" ] || [ -s "$force" ]; then
+    rm -rf "$doc_sent_path"
+    mkdir -p "$doc_sent_path"
+
+    K=5
+    echo 'Generating the training set for the sentence retrieval model...'
+    for file in "$dataset_path/"{train,dev}'.jsonl'; do
+      filename=${file##*/}
+      echo "Processing claims in $file..."
+      env "PYTHONPATH=src" \
+      pipenv run python3 'src/pipeline/sentence-retrieval/sentence_retrieval_generate.py' \
+          --db-file "$db_path/wikipedia.db" \
+          --in-file "$dataset_path/$filename" \
+          --out-file "$doc_sent_path/$filename.tsv" \
+          --max-neg-evidences-per-page $K
+    done
+
+    echo 'Finetuning the transformer model...'
+    env "PYTHONPATH=src" pipenv run python3 'src/pipeline/sentence-retrieval/sentence_retrieval_train.py' \
+        --model_type bert \
+        --model_name_or_path bert-base-cased \
+        --task_name 'sentence_retrieval' \
+        --do_train \
+        --do_eval \
+        --data_dir "$doc_sent_path" \
+        --max_seq_length 128 \
+        --per_gpu_eval_batch_size=8   \
+        --per_gpu_train_batch_size=8   \
+        --learning_rate 2e-5 \
+        --num_train_epochs 1 \
+        --output_dir "$doc_sent_path/model" \
+        --cache_dir "$cache_path/transformers"
   fi
-fi
+}
+
+
+# Run the pipeline
+function run() {
+  task=${1:-'all'}
+  force_run=$2
+
+  PATH_DATA='data'
+
+  PATH_D_FEVER="$PATH_DATA/fever"
+  PATH_D_PIPELINE="$PATH_DATA/pipeline"
+  PATH_D_CACHE="$PATH_DATA/cache"
+
+  mkdir -p $PATH_D_FEVER
+  mkdir -p $PATH_D_PIPELINE
+  mkdir -p $PATH_D_CACHE
+
+  if [[ $task == "all" ]] || [[ $task == "install_deps" ]]; then
+    install_deps "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $force_run
+  fi
+  if [[ $task == "all" ]] || [[ $task == "download_fever" ]]; then
+    download_fever "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $force_run
+  fi
+  if [[ $task == "all" ]] || [[ $task == "pipeline_build_db" ]]; then
+    pipeline_build_db "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $force_run
+  fi
+  if [[ $task == "all" ]] || [[ $task == "pipeline_document_retrieval" ]]; then
+    pipeline_document_retrieval "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $force_run
+  fi
+  if [[ $task == "all" ]] || [[ $task == "pipeline_sentence_retrieval" ]]; then
+    pipeline_sentence_retrieval "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $force_run
+  fi
+}
+
+run "$@"
