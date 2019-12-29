@@ -13,6 +13,10 @@ black = "*"
 autopep8 = "*"
 
 [packages]
+tqdm = "~=4.41.0"
+nltk = "~=3.4.5"
+wikipedia = "~=1.4.0"
+allennlp = "~=0.9.0"
 
 [requires]
 python_version = "3.7"
