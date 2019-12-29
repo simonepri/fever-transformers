@@ -3,20 +3,20 @@
 
 # Install the dependencies needed to run the python scripts.
 function install_deps() {
-  fever_path=$1
-  pipeline_path=$2
-  cache_path=$3
-  force=$4
+  local fever_path=$1
+  local pipeline_path=$2
+  local cache_path=$3
+  local force=$4
 
-  venv_path=".venv"
+  local venv_path=".venv"
 
-  if [ ! -d "$venv_path" ] || [ -s "$force" ]; then
+  if [ ! -d "$venv_path" ] || [ ! -z "$force" ]; then
     rm -rf "$venv_path"
     mkdir -p "$venv_path"
 
     if ! hash pipenv; then
       echo 'You need to install pipenv to run this.'
-      echo 'Check it out at https://github.com/pypa/pipenv.'
+      echo 'Check it out at https://github.com/pypa/pipenv .'
       exit 1
     fi
     echo 'Install dependencies...'
@@ -29,15 +29,15 @@ function install_deps() {
 # Download the FEVER dataset and the pre-processed Wikipedia articles from the
 # website of the FEVER share task.
 function download_fever() {
-  fever_path=$1
-  pipeline_path=$2
-  cache_path=$3
-  force=$4
+  local fever_path=$1
+  local pipeline_path=$2
+  local cache_path=$3
+  local force=$4
 
-  dataset_path="$fever_path/dataset"
-  wikipedia_path="$fever_path/wikipedia"
+  local dataset_path="$fever_path/dataset"
+  local wikipedia_path="$fever_path/wikipedia"
 
-  if [ ! -d "$dataset_path" ] || [ -s "$force" ]; then
+  if [ ! -d "$dataset_path" ] || [ ! -z "$force" ]; then
     rm -rf "$dataset_path"
     mkdir -p "$dataset_path"
 
@@ -47,7 +47,7 @@ function download_fever() {
     wget -q --show-progress -O "$dataset_path/test.jsonl" 'https://s3-eu-west-1.amazonaws.com/fever.public/shared_task_test.jsonl'
   fi
 
-  if [ ! -d "$wikipedia_path" ] || [ -s "$force" ]; then
+  if [ ! -d "$wikipedia_path" ] || [ ! -z "$force" ]; then
     rm -rf "$wikipedia_path"
     mkdir -p "$wikipedia_path"
 
@@ -59,17 +59,27 @@ function download_fever() {
 }
 
 
+# Download the output of the build db step instead of computing it
+function download_build_db() {
+  local fever_path=$1
+  local pipeline_path=$2
+  local cache_path=$3
+  local force=$4
+
+}
+
+
 # Construct an SQLite Database from the pre-processed Wikipedia articles.
 function pipeline_build_db() {
-  fever_path=$1
-  pipeline_path=$2
-  cache_path=$3
-  force=$4
+  local fever_path=$1
+  local pipeline_path=$2
+  local cache_path=$3
+  local force=$4
 
-  db_path="$pipeline_path/build-db"
-  wikipedia_path="$fever_path/wikipedia"
+  local db_path="$pipeline_path/build-db"
+  local wikipedia_path="$fever_path/wikipedia"
 
-  if [ ! -d "$db_path" ] || [ -s "$force" ]; then
+  if [ ! -d "$db_path" ] || [ ! -z "$force" ]; then
     rm -rf "$db_path"
     mkdir -p "$db_path"
 
@@ -82,18 +92,28 @@ function pipeline_build_db() {
 }
 
 
+# Download the output of the document retrieval step instead of computing it
+function download_document_retrieval() {
+  local fever_path=$1
+  local pipeline_path=$2
+  local cache_path=$3
+  local force=$4
+
+}
+
+
 # Execute the document retrieval step
 function pipeline_document_retrieval() {
-  fever_path=$1
-  pipeline_path=$2
-  cache_path=$3
-  force=$4
+  local fever_path=$1
+  local pipeline_path=$2
+  local cache_path=$3
+  local force=$4
 
-  doc_ret_path="$pipeline_path/document-retrieval"
-  db_path="$pipeline_path/build-db"
-  dataset_path="$fever_path/dataset"
+  local doc_ret_path="$pipeline_path/document-retrieval"
+  local db_path="$pipeline_path/build-db"
+  local dataset_path="$fever_path/dataset"
 
-  if [ ! -d "$doc_ret_path" ] || [ -s "$force" ]; then
+  if [ ! -d "$doc_ret_path" ] || [ ! -z "$force" ]; then
     rm -rf "$doc_ret_path"
     mkdir -p "$doc_ret_path"
 
@@ -113,36 +133,47 @@ function pipeline_document_retrieval() {
 }
 
 
+# Download the output of the sentence retrieval step instead of computing it
+function download_sentence_retrieval() {
+  local fever_path=$1
+  local pipeline_path=$2
+  local cache_path=$3
+  local force=$4
+
+}
+
+
 # Execute the sentence retrieval step
 function pipeline_sentence_retrieval() {
-  fever_path=$1
-  pipeline_path=$2
-  cache_path=$3
-  force=$4
+  local fever_path=$1
+  local pipeline_path=$2
+  local cache_path=$3
+  local force=$4
 
-  doc_sent_path="$pipeline_path/sentence-retrieval"
-  db_path="$pipeline_path/build-db"
-  dataset_path="$fever_path/dataset"
+  local doc_ret_path="$pipeline_path/document-retrieval"
+  local doc_sent_path="$pipeline_path/sentence-retrieval"
+  local db_path="$pipeline_path/build-db"
 
-  if [ ! -d "$doc_sent_path" ] || [ -s "$force" ]; then
+  if [ ! -d "$doc_sent_path" ] || [ ! -z "$force" ]; then
     rm -rf "$doc_sent_path"
     mkdir -p "$doc_sent_path"
 
     K=5
     echo 'Generating the training set for the sentence retrieval model...'
-    for file in "$dataset_path/"{train,dev}'.jsonl'; do
+    for file in "$doc_ret_path/"{train,dev}'.jsonl'; do
       filename=${file##*/}
       echo "Processing claims in $file..."
       env "PYTHONPATH=src" \
       pipenv run python3 'src/pipeline/sentence-retrieval/sentence_retrieval_generate.py' \
           --db-file "$db_path/wikipedia.db" \
-          --in-file "$dataset_path/$filename" \
+          --in-file "$doc_ret_path/$filename" \
           --out-file "$doc_sent_path/$filename.tsv" \
           --max-neg-evidences-per-page $K
     done
 
     echo 'Finetuning the transformer model...'
-    env "PYTHONPATH=src" pipenv run python3 'src/pipeline/sentence-retrieval/sentence_retrieval_train.py' \
+    env "PYTHONPATH=src" \
+    pipenv run python3 'src/pipeline/sentence-retrieval/sentence_retrieval_train.py' \
         --model_type bert \
         --model_name_or_path bert-base-cased \
         --task_name 'sentence_retrieval' \
@@ -160,36 +191,77 @@ function pipeline_sentence_retrieval() {
 }
 
 
+# Download the output of the claim verification step instead of computing it
+function download_claim_verification() {
+  local fever_path=$1
+  local pipeline_path=$2
+  local cache_path=$3
+  local force=$4
+
+}
+
+
+# Execute the claim verification step
+function pipeline_claim_verification() {
+  local fever_path=$1
+  local pipeline_path=$2
+  local cache_path=$3
+  local force=$4
+
+}
+
+
 # Run the pipeline
 function run() {
-  task=${1:-'all'}
-  force_run=$2
+  # Read all the recognized flags and expected arguments.
+  local -a pargs
+  while [[ $1 != "" ]]; do
+    case "$1" in
+      -force ) flag_force=1; shift;;
+      -quick ) flag_quick=1; shift;;
+      * ) pargs+=("$1"); shift;;
+    esac
+  done
+  local parg_task="${pargs[0]:-'all'}"
+  unset pargs
 
-  PATH_DATA='data'
-
-  PATH_D_FEVER="$PATH_DATA/fever"
-  PATH_D_PIPELINE="$PATH_DATA/pipeline"
-  PATH_D_CACHE="$PATH_DATA/cache"
-
+  # Create the necessary folders
+  local PATH_DATA='data'
+  local PATH_D_FEVER="$PATH_DATA/fever"
+  local PATH_D_PIPELINE="$PATH_DATA/pipeline"
+  local PATH_D_CACHE="$PATH_DATA/cache"
   mkdir -p $PATH_D_FEVER
   mkdir -p $PATH_D_PIPELINE
   mkdir -p $PATH_D_CACHE
 
-  if [[ $task == "all" ]] || [[ $task == "install_deps" ]]; then
-    install_deps "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $force_run
+  # Execute the tasks
+  if [[ $parg_task == "all" ]] || [[ $parg_task == "install_deps" ]]; then
+    install_deps "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force
   fi
-  if [[ $task == "all" ]] || [[ $task == "download_fever" ]]; then
-    download_fever "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $force_run
+  if [[ $parg_task == "all" ]] || [[ $parg_task == "download_fever" ]]; then
+    download_fever "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force
   fi
-  if [[ $task == "all" ]] || [[ $task == "pipeline_build_db" ]]; then
-    pipeline_build_db "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $force_run
-  fi
-  if [[ $task == "all" ]] || [[ $task == "pipeline_document_retrieval" ]]; then
-    pipeline_document_retrieval "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $force_run
-  fi
-  if [[ $task == "all" ]] || [[ $task == "pipeline_sentence_retrieval" ]]; then
-    pipeline_sentence_retrieval "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $force_run
+
+  if [ ! -z $flag_quick ]; then
+    download_build_db "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force
+    download_document_retrieval "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force
+    download_sentence_retrieval "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force
+    download_claim_verification "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force
+  else
+    if [[ $parg_task == "all" ]] || [[ $parg_task == "pipeline_build_db" ]]; then
+      pipeline_build_db "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force
+    fi
+    if [[ $parg_task == "all" ]] || [[ $parg_task == "pipeline_document_retrieval" ]]; then
+      pipeline_document_retrieval "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force
+    fi
+    if [[ $parg_task == "all" ]] || [[ $parg_task == "pipeline_sentence_retrieval" ]]; then
+      pipeline_sentence_retrieval "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force
+    fi
+    if [[ $parg_task == "all" ]] || [[ $parg_task == "pipeline_claim_verification" ]]; then
+      pipeline_claim_verification "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force
+    fi
   fi
 }
+
 
 run "$@"
