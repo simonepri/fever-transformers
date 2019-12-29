@@ -61,3 +61,25 @@ class FeverDocDB(object):
         result = cursor.fetchone()
         cursor.close()
         return result if result is None else result[0]
+
+    def get_all_doc_text(self, doc_ids):
+        """Fetch the raw text of the docs in 'doc_ids'."""
+        cursor = self.connection.cursor()
+        cursor.execute(
+            "SELECT id,text FROM documents WHERE id IN ({})".format(','.join(['?']*len(doc_ids))),
+            [unicodedata.normalize("NFD", doc_id) for doc_id in doc_ids]
+        )
+        results = cursor.fetchall()
+        cursor.close()
+        return results
+
+    def get_all_doc_lines(self, doc_ids):
+        """Fetch the raw text of the docs in 'doc_ids'."""
+        cursor = self.connection.cursor()
+        cursor.execute(
+            "SELECT id,lines FROM documents WHERE id IN ({})".format(','.join(['?']*len(doc_ids))),
+            [unicodedata.normalize("NFD", doc_id) for doc_id in doc_ids]
+        )
+        results = cursor.fetchall()
+        cursor.close()
+        return results
