@@ -1,5 +1,35 @@
 #!/usr/bin/env bash
 
+# Install the dependencies needed to run the python scripts.
+function install_deps() {
+  local fever_path=$1
+  local pipeline_path=$2
+  local cache_path=$3
+  local force=$4
+  local download=$5
+
+  local venv_path=".venv"
+
+  if (( $force != 0 )); then
+    rm -rf "$venv_path"
+  fi
+
+  if [ ! -d "$venv_path" ]; then
+    rm -rf "$venv_path"
+    mkdir -p "$venv_path"
+
+    if ! hash pipenv; then
+      echo 'You need to install pipenv to run this.'
+      echo 'Check it out at https://github.com/pypa/pipenv .'
+      exit 1
+    fi
+    echo 'Install dependencies...'
+    env "PIPENV_VENV_IN_PROJECT=1" \
+    pipenv install --skip-lock
+  fi
+}
+
+
 # Run the pipeline
 function run() {
   # Read all the recognized flags and expected arguments.
@@ -30,6 +60,10 @@ function run() {
   mkdir -p "$PATH_D_CACHE"
   mkdir -p "$PATH_D_LOGS"
 
+  # Execute the tasks
+  if [ -z $parg_task ] || [[ $parg_task == "install_deps" ]]; then
+    install_deps "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force $flag_download > >(tee -a "$PATH_D_LOGS/install_deps.log") 2>&1
+  fi
 }
 
 # Kill ourself with SIGINT upon receiving SIGINT (i.e. CTRL + C)
