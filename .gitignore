@@ -1,8 +1,10 @@
 ### Custom ###
 data/
+runs/
 
-# Created by https://www.gitignore.io/api/linux,macos,python,windows,jupyternotebooks
-# Edit at https://www.gitignore.io/?templates=linux,macos,python,windows,jupyternotebooks
+
+# Created by https://www.gitignore.io/api/linux,macos,python,windows,jupyternotebooks,venv
+# Edit at https://www.gitignore.io/?templates=linux,macos,python,windows,jupyternotebooks,venv
 
 ### JupyterNotebooks ###
 # gitignore template for Jupyter Notebooks
@@ -166,6 +168,19 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+### venv ###
+# Virtualenv
+# http://iamzed.com/2009/05/07/a-primer-on-virtualenv/
+pyvenv.cfg
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+pip-selfcheck.json
+
 ### Windows ###
 # Windows thumbnail cache files
 Thumbs.db
@@ -192,4 +207,4 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
-# End of https://www.gitignore.io/api/linux,macos,python,windows,jupyternotebooks
+# End of https://www.gitignore.io/api/linux,macos,python,windows,jupyternotebooks,venv
