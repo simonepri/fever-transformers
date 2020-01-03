@@ -42,7 +42,7 @@ def main(labels_file, in_file, out_file):
             lines = map(json.loads, fin.readlines())
             for line in tqdm(lines, desc="Claim", total=nlines):
                 claim_id = line["id"]
-                line["predicted_label"] = claims_label[claim_id]
+                line["classified_evidences"] = claims_label[claim_id]
                 fout.write(json.dumps(line) + "\n")
 
 

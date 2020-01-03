@@ -487,6 +487,54 @@ function claim_verification() {
 }
 
 
+# Put all the pieces together and generate the file to submit
+function generate_submission() {
+  local fever_path=$1
+  local pipeline_path=$2
+  local cache_path=$3
+  local force=$4
+  local download=$5
+
+  local sub_path="$pipeline_path/generate-submission"
+  local claim_ver_path="$pipeline_path/claim-verification"
+
+  if (( $force != 0 )); then
+    rm -rf "$sub_path"
+  fi
+
+  if [ ! -f "$sub_path" ]; then
+    mkdir -p "$sub_path"
+
+    if (( $download != 0)); then
+      local zip_file="$pipeline_path/generate-submission.zip"
+
+      echo '● Downloading the output of the generate submission step instead of computing it...'
+      wget -q --show-progress --progress=bar:force -O "$zip_file" \
+      'https://github.com/simonepri/fever-transformers/releases/download/0.0.1/generate-submission.zip'
+      if [ $? -eq 0 ]; then
+        unzip -o -j "$zip_file" -d "$sub_path"
+        rm "$zip_file"
+        return
+      else
+        rm "$zip_file"
+        echo 'Download failed...'
+      fi
+    fi
+
+    echo '● Building the submission files...'
+    for filetype in {dev,test,train}; do
+      local claim_ver_file="$claim_ver_path/claims.predicted.$filetype.jsonl"
+      local sub_file="$sub_path/submission.$filetype.jsonl"
+
+      env "PYTHONPATH=src" \
+      pipenv run python3 'src/pipeline/generate-submission/run.py' \
+          --in-file "$claim_ver_file" \
+          --out-file "$sub_file"
+    done
+  fi
+}
+
+
 # Run the pipeline
 function run() {
   # Read all the recognized flags and expected arguments.
@@ -535,6 +583,9 @@ function run() {
   fi
   if [ -z $parg_task ] || [[ $parg_task == "claim_verification" ]]; then
     claim_verification "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force $flag_download > >(tee -a "$PATH_D_LOGS/claim_verification.log") 2>&1
+  fi
+  if [ -z $parg_task ] || [[ $parg_task == "generate_submission" ]]; then
+    generate_submission "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force $flag_download > >(tee -a "$PATH_D_LOGS/generate_submission.log") 2>&1
   fi
 }
 
