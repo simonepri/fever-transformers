@@ -12,7 +12,7 @@ from functools import reduce
 from tqdm import tqdm
 
 
-def get_claims_label(labels_file, max_sent_per_claim):
+def get_claims_label(labels_file):
     claim_labels = defaultdict(lambda: [])
     label_map = ['NOT ENOUGH INFO', 'REFUTES', 'SUPPORTS']
     with open(labels_file, "r") as f:
@@ -27,13 +27,13 @@ def get_claims_label(labels_file, max_sent_per_claim):
     return claim_labels
 
 
-def main(labels_file, in_file, out_file, max_sent_per_claim=None):
+def main(labels_file, in_file, out_file):
     path = os.getcwd()
     labels_file = os.path.join(path, labels_file)
     in_file = os.path.join(path, in_file)
     out_file = os.path.join(path, out_file)
 
-    claims_label = get_claims_label(labels_file, max_sent_per_claim)
+    claims_label = get_claims_label(labels_file)
 
     with open(out_file, "w+") as fout:
         with open(in_file, "r") as fin:
@@ -52,7 +52,5 @@ if __name__ == "__main__":
     parser.add_argument("--in-file", type=str, help="input dataset")
     parser.add_argument("--out-file", type=str,
                         help="path to save output dataset")
-    parser.add_argument("--max-sent-per-claim", type=int,
-                        help="number of top sentences to return for each claim")
     args = parser.parse_args()
-    main(args.labels_file, args.in_file, args.out_file, max_sent_per_claim=args.max_sent_per_claim)
+    main(args.labels_file, args.in_file, args.out_file)
