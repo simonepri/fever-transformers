@@ -71,6 +71,51 @@ function download_fever() {
 }
 
 
+# Construct an SQLite Database from the pre-processed Wikipedia articles.
+function build_db() {
+  local fever_path=$1
+  local pipeline_path=$2
+  local cache_path=$3
+  local force=$4
+  local download=$5
+
+  local db_path="$pipeline_path/build-db"
+  local wikipedia_path="$fever_path/wikipedia"
+
+  if (( $force != 0 )); then
+    rm -rf "$db_path"
+  fi
+
+  local db_file="$db_path/wikipedia.db"
+
+  if [ ! -f "$db_file" ]; then
+    mkdir -p "$db_path"
+
+    if (( $download != 0)); then
+      local zip_file="$pipeline_path/build-db.zip"
+
+      echo '● Downloading the output of the build db step instead of computing it...'
+      wget -q --show-progress --progress=bar:force -O "$zip_file" \
+      'https://github.com/simonepri/fever-transformers/releases/download/0.0.1/build-db.zip'
+      if [ $? -eq 0 ]; then
+        unzip -o -j "$zip_file" -d "$db_path"
+        rm "$zip_file"
+        return
+      else
+        rm "$zip_file"
+        echo 'Download failed...'
+      fi
+    fi
+
+    echo '● Constructing an SQLite Database from the pre-processed Wikipedia articles...'
+    env "PYTHONPATH=src" \
+    pipenv run python3 'src/pipeline/build-db/run.py' \
+        "$wikipedia_path" \
+        "$db_file"
+  fi
+}
+
+
 # Run the pipeline
 function run() {
   # Read all the recognized flags and expected arguments.
@@ -107,6 +152,9 @@ function run() {
   fi
   if [ -z $parg_task ] || [[ $parg_task == "download_fever" ]]; then
     download_fever "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force $flag_download > >(tee -a "$PATH_D_LOGS/download_fever.log") 2>&1
+  fi
+  if [ -z $parg_task ] || [[ $parg_task == "build_db" ]]; then
+    build_db "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force $flag_download > >(tee -a "$PATH_D_LOGS/build_db.log") 2>&1
   fi
 }
 
