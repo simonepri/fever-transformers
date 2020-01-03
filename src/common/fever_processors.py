@@ -123,6 +123,7 @@ def fever_convert_examples_to_features(
 def fever_compute_metrics(task_name, preds, labels):
     def mse(preds, labels):
         return np.mean((labels - preds) ** 2)
+
     def accuracy(preds, labels):
         return (preds == labels).mean()
 
@@ -220,10 +221,11 @@ class ClaimVerificationProcessor(SentenceRetrievalProcessor):
 
     def get_labels(self):
         """See base class."""
-        return ["R", "S", "N"] # NOT ENOUGH INFO, REFUTES, SUPPORTS
+        return ["R", "S", "N"]  # NOT ENOUGH INFO, REFUTES, SUPPORTS
 
     def get_dummy_label(self):
         return "N"
+
 
 fever_processors = {
     "sentence_retrieval": SentenceRetrievalProcessor,

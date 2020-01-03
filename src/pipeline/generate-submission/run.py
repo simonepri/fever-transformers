@@ -14,16 +14,16 @@ from tqdm import tqdm
 
 def predict_claim(line):
     claim_id, classified_evidences = line["id"], line["classified_evidences"]
-    prediction = ('NOT ENOUGH INFO', [])
-    for label,(page, sent_id, _) in classified_evidences:
-        if label == 'NOT ENOUGH INFO':
+    prediction = ("NOT ENOUGH INFO", [])
+    for label, (page, sent_id, _) in classified_evidences:
+        if label == "NOT ENOUGH INFO":
             continue
-        elif label == 'SUPPORTS':
+        elif label == "SUPPORTS":
             if prediction[0] != label:
                 prediction = (label, [])
             prediction[1].append((page, sent_id))
-        elif label == 'REFUTES':
-            if prediction[0] == 'SUPPORTS':
+        elif label == "REFUTES":
+            if prediction[0] == "SUPPORTS":
                 continue
             if prediction[0] != label:
                 prediction = (label, [])

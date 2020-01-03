@@ -19,6 +19,7 @@ def get_all_claim_evidences(docs, pred_sentences):
     for (score, evid) in pred_sentences:
         yield evid
 
+
 def get_positive_claim_evidences(docs, evid_sets):
     evidences = set()
     for evid_set in evid_sets:
@@ -28,6 +29,7 @@ def get_positive_claim_evidences(docs, evid_sets):
                 sent = docs[Wikipedia_URL][sentence_ID].split("\t")[1]
                 evidences.add((Wikipedia_URL, sentence_ID, sent))
     return evidences
+
 
 def get_negative_claim_evidences(docs, evid_sets, pred_sentences):
     positive_sentences = {}
@@ -41,7 +43,7 @@ def get_negative_claim_evidences(docs, evid_sets, pred_sentences):
 
     # sample negative examples from other sentences that are not useful evidence
     for (score, evid) in pred_sentences:
-        page,sent_id,sent = evid
+        page, sent_id, sent = evid
         if page in positive_sentences and sent_id in positive_sentences[page]:
             continue
         yield evid
@@ -81,15 +83,15 @@ def main(db_file, in_file, out_file, max_neg_evidences_per_page=None, prediction
 
             if prediction:
                 # extract all the sentences for the documents predicted for this claim
-                for page,sent_id,sentence in get_all_claim_evidences(docs, pred_sentences):
-                    outfile.write('\t'.join([str(id), claim, page, str(sent_id), sentence]) + '\n')
+                for page, sent_id, sentence in get_all_claim_evidences(docs, pred_sentences):
+                    outfile.write("\t".join([str(id), claim, page, str(sent_id), sentence]) + "\n")
             else:
                 label = line["label"]
                 # write positive and negative evidence to file
-                for page,sent_id,sentence in get_positive_claim_evidences(docs, evid_sets):
-                    outfile.write('\t'.join([str(id), claim, page, str(sent_id), sentence, label[0]]) + '\n')
-                for page,sent_id,sentence in get_negative_claim_evidences(docs, evid_sets, pred_sentences):
-                    outfile.write('\t'.join([str(id), claim, page, str(sent_id), sentence, "NOT ENOUGH INFO"[0]]) + '\n')
+                for page, sent_id, sentence in get_positive_claim_evidences(docs, evid_sets):
+                    outfile.write("\t".join([str(id), claim, page, str(sent_id), sentence, label[0]]) + "\n")
+                for page, sent_id, sentence in get_negative_claim_evidences(docs, evid_sets, pred_sentences):
+                    outfile.write("\t".join([str(id), claim, page, str(sent_id), sentence, "NOT ENOUGH INFO"[0]]) + "\n")
     outfile.close()
 
 

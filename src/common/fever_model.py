@@ -154,7 +154,7 @@ def train(args, model, tokenizer):
             loss = outputs[0]  # model outputs are always tuple in transformers (see doc)
 
             if args.n_gpu > 1:
-                loss = loss.mean() # mean() to average on multi-gpu parallel training
+                loss = loss.mean()  # mean() to average on multi-gpu parallel training
             if args.gradient_accumulation_steps > 1:
                 loss = loss / args.gradient_accumulation_steps
 
@@ -364,7 +364,7 @@ def load_and_cache_examples(args, task, tokenizer, file_path, purpose="train"):
             all_labels = torch.empty(num_examples, dtype=torch.long)
         elif output_mode == "regression":
             all_labels = torch.empty(num_examples, dtype=torch.float)
-        for i,feature in enumerate(tqdm(features, desc="Example", total=num_examples)):
+        for i, feature in enumerate(tqdm(features, desc="Example", total=num_examples)):
             all_input_ids[i] = torch.tensor(feature.input_ids)
             all_attention_mask[i] = torch.tensor(feature.attention_mask)
             all_token_type_ids[i] = torch.tensor(feature.token_type_ids)
@@ -380,6 +380,7 @@ def load_and_cache_examples(args, task, tokenizer, file_path, purpose="train"):
 
     dataset = TensorDataset(*all_features_list)
     return dataset
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -479,6 +480,7 @@ def main():
     if args.server_ip and args.server_port:
         # Distant debugging - see https://code.visualstudio.com/docs/python/debugging#_attach-to-a-local-script
         import ptvsd
+
         print("Waiting for debugger attach")
         ptvsd.enable_attach(address=(args.server_ip, args.server_port), redirect_output=True)
         ptvsd.wait_for_attach()
@@ -538,12 +540,10 @@ def main():
 
     logger.info("Training/evaluation parameters %s", args)
 
-
     # Training
     if args.do_train:
         global_step, tr_loss = train(args, model, tokenizer)
         logger.info(" global_step = %s, average loss = %s", global_step, tr_loss)
-
 
     # Saving best-practices: if you use defaults names for the model, you can reload it using from_pretrained()
     if args.do_train and (args.local_rank == -1 or torch.distributed.get_rank() == 0):
@@ -566,7 +566,6 @@ def main():
         tokenizer = tokenizer_class.from_pretrained(args.output_dir)
         model.to(args.device)
 
-
     # Evaluation
     results = {}
     if args.do_eval and args.local_rank in [-1, 0]:
@@ -585,7 +584,6 @@ def main():
             result = evaluate(args, model, tokenizer, prefix=prefix)
             result = dict((k + "_{}".format(global_step), v) for k, v in result.items())
             results.update(result)
-
 
     # Prediction
     if args.do_predict:

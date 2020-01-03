@@ -30,6 +30,7 @@ def get_positive_claim_evidences(docs, evid_sets):
             evidences.add((Wikipedia_URL, sentence_ID, sent))
     return evidences
 
+
 def get_negative_claim_evidences(docs, evid_sets, pred_pages, max_neg_evidences_per_page=None):
     positive_sentences = {}
     for evid_set in evid_sets:
@@ -41,7 +42,7 @@ def get_negative_claim_evidences(docs, evid_sets, pred_pages, max_neg_evidences_
 
     # sample negative examples from pages where good evidences are, by
     # avoiding to select the good evidences themself
-    for page,positives in positive_sentences.items():
+    for page, positives in positive_sentences.items():
         for evidence in sample_evidences(docs, page, positives, num_samples=max_neg_evidences_per_page):
             yield evidence
 
@@ -67,6 +68,7 @@ def sample_evidences(docs, page, to_ignore=set(), num_samples=1):
             continue
         evidences.append((page, sent_id, sent_text))
     return evidences if num_samples is None else random.sample(evidences, min(len(evidences), num_samples))
+
 
 def fetch_documents(db, evid_sets, pred_pages):
     pages = set(pred_pages)
@@ -106,14 +108,14 @@ def main(db_file, in_file, out_file, max_neg_evidences_per_page=None, prediction
 
             if prediction:
                 # extract all the sentences for the documents predicted for this claim
-                for page,sent_id,sentence in get_all_claim_evidences(docs, pred_pages):
-                    outfile.write('\t'.join([str(id), claim, page, str(sent_id), sentence]) + '\n')
+                for page, sent_id, sentence in get_all_claim_evidences(docs, pred_pages):
+                    outfile.write("\t".join([str(id), claim, page, str(sent_id), sentence]) + "\n")
             else:
                 # write positive and negative evidence to file
-                for page,sent_id,sentence in get_positive_claim_evidences(docs, evid_sets):
-                    outfile.write('\t'.join([str(id), claim, page, str(sent_id), sentence, '1']) + '\n')
-                for page,sent_id,sentence in get_negative_claim_evidences(docs, evid_sets, pred_pages, max_neg_evidences_per_page=max_neg_evidences_per_page):
-                    outfile.write('\t'.join([str(id), claim, page, str(sent_id), sentence, '0']) + '\n')
+                for page, sent_id, sentence in get_positive_claim_evidences(docs, evid_sets):
+                    outfile.write("\t".join([str(id), claim, page, str(sent_id), sentence, "1"]) + "\n")
+                for page, sent_id, sentence in get_negative_claim_evidences(docs, evid_sets, pred_pages, max_neg_evidences_per_page=max_neg_evidences_per_page):
+                    outfile.write("\t".join([str(id), claim, page, str(sent_id), sentence, "0"]) + "\n")
     outfile.close()
 
 
