@@ -165,7 +165,7 @@ function document_retrieval() {
 
     if [ ! -f "$doc_ret_file" ]; then
       echo "● Retrieving the top $max_docs_per_claim documents for each claim in $dataset_file..."
-      env "PYTHONPATH=src NLTK_DATA=$nltk_cache_path ALLENNLP_CACHE_ROOT=$allen_cache_path" \
+      env "PYTHONPATH=src" "NLTK_DATA=$nltk_cache_path" "ALLENNLP_CACHE_ROOT=$allen_cache_path" \
       pipenv run python3 'src/pipeline/document-retrieval/run.py' \
           --db-file "$db_file" \
           --in-file "$dataset_file" \

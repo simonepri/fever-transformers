@@ -210,7 +210,7 @@ def main(db_file, max_docs_per_claim, in_file, out_file, add_claim=True, paralle
     path = os.getcwd()
     lines = []
     with open(os.path.join(path, in_file), "r") as f:
-        lines = map(json.load, f.readlines())
+        lines = [json.loads(line) for line in f.readlines()]
     if os.path.isfile(os.path.join(path, out_file + ".progress")):
         with open(os.path.join(path, out_file + ".progress"), "rb") as f_progress:
             import pickle
