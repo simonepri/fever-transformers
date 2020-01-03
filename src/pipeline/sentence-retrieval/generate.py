@@ -7,6 +7,7 @@ import os
 import unicodedata
 import random
 from collections import defaultdict
+from functools import reduce
 
 import numpy as np
 from tqdm import tqdm
@@ -86,7 +87,6 @@ def main(db_file, in_file, out_file, max_neg_evidences_per_page=None, prediction
     outfile = open(os.path.join(path, out_file), "w+")
 
     db = FeverDocDB(db_file)
-    jlr = JSONLineReader()
 
     with open(os.path.join(path, in_file), "r") as f:
         nlines = reduce(lambda a, b: a + b, map(lambda x: 1, f.readlines()), 0)

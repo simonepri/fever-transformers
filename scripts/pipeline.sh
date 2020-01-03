@@ -211,7 +211,7 @@ function sentence_retrieval() {
       wget -q --show-progress --progress=bar:force -O "$zip_file" \
       'https://github.com/simonepri/fever-transformers/releases/download/0.0.1/sentence-retrieval.zip'
       if [ $? -eq 0 ]; then
-        unzip -o -j "$zip_file" -d "$db_path"
+        unzip -o -j "$zip_file" -d "$sent_ret_path"
         rm "$zip_file"
         return
       else

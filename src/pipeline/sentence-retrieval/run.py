@@ -5,7 +5,6 @@ import bisect
 import csv
 import json
 import os
-
 from collections import defaultdict
 from functools import reduce
 
