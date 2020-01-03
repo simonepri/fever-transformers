@@ -361,7 +361,7 @@ def load_and_cache_examples(args, task, tokenizer, file_path, purpose="train"):
         all_attention_mask = torch.empty((num_examples, args.max_seq_length), dtype=torch.bool)
         all_token_type_ids = torch.empty((num_examples, args.max_seq_length), dtype=torch.bool)
         if output_mode == "classification":
-            all_labels = torch.empty(num_examples, dtype=torch.int8)
+            all_labels = torch.empty(num_examples, dtype=torch.long)
         elif output_mode == "regression":
             all_labels = torch.empty(num_examples, dtype=torch.float)
         for i,feature in enumerate(tqdm(features, desc="Example", total=num_examples)):
