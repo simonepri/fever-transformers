@@ -176,6 +176,164 @@ function document_retrieval() {
 }
 
 
+# Execute the sentence retrieval step
+function sentence_retrieval() {
+  local fever_path=$1
+  local pipeline_path=$2
+  local cache_path=$3
+  local force=$4
+  local download=$5
+
+  local doc_ret_path="$pipeline_path/document-retrieval"
+  local sent_ret_path="$pipeline_path/sentence-retrieval"
+  local db_path="$pipeline_path/build-db"
+  local dataset_path="$fever_path/dataset"
+
+  local transformers_cache_path="$cache_path/transformers"
+
+  local model_path="$sent_ret_path/model"
+  local db_file="$db_path/wikipedia.db"
+
+  local max_neg_evidences_per_page=2
+  local max_sent_per_claim=5
+
+  if (( $force != 0 )); then
+    rm -rf "$sent_ret_path"
+  fi
+
+  if [ ! -d "$sent_ret_path" ]; then
+    mkdir -p "$sent_ret_path"
+
+    if (( $download != 0)); then
+      local zip_file="$pipeline_path/sentence-retrieval.zip"
+
+      echo '● Downloading the output of the sentence retrieval step instead of computing it...'
+      wget -q --show-progress --progress=bar:force -O "$zip_file" \
+      'https://github.com/simonepri/fever-transformers/releases/download/0.0.1/sentence-retrieval.zip'
+      if [ $? -eq 0 ]; then
+        unzip -o -j "$zip_file" -d "$db_path"
+        rm "$zip_file"
+        return
+      else
+        rm "$zip_file"
+        echo 'Download failed...'
+      fi
+    fi
+  fi
+
+  if [ ! -f "$model_path/config.json" ]; then
+    local tuning_file="$sent_ret_path/sentences.golden.train.tsv"
+    local doc_ret_file="$doc_ret_path/documents.predicted.train.jsonl"
+
+    if [ ! -f "$tuning_file" ]; then
+      echo "● Generating tuning examples from claims in $doc_ret_file..."
+      env "PYTHONPATH=src" \
+      pipenv run python3 'src/pipeline/sentence-retrieval/generate.py' \
+          --db-file "$db_file" \
+          --in-file "$doc_ret_file" \
+          --out-file "$tuning_file" \
+          --max-neg-evidences-per-page $max_neg_evidences_per_page
+    fi
+
+    echo '● Finetuning the transformer model...'
+    env "PYTHONPATH=src" \
+    pipenv run python3 'src/pipeline/sentence-retrieval/model.py' \
+        --model_type 'bert' \
+        --model_name_or_path 'bert-base-cased' \
+        --max_seq_length 128 \
+        --task_name 'sentence_retrieval' \
+        --output_dir "$model_path" \
+        --cache_dir "$transformers_cache_path" \
+        --do_train \
+        --train_in_file "$tuning_file" \
+        --per_gpu_train_batch_size=32 \
+        --learning_rate 2e-5 \
+        --num_train_epochs 2 \
+        --logging_steps 1000 \
+        --save_steps 10000
+  fi
+
+  if [ ! -f "$model_path/eval_results.txt" ]; then
+    local eval_file="$sent_ret_path/sentences.golden.dev.tsv"
+    local doc_ret_file="$doc_ret_path/documents.predicted.dev.jsonl"
+
+    if [ ! -f "$eval_file" ]; then
+      echo "● Generating evaluation examples from claims in $doc_ret_file..."
+      env "PYTHONPATH=src" \
+      pipenv run python3 'src/pipeline/sentence-retrieval/generate.py' \
+          --db-file "$db_file" \
+          --in-file "$doc_ret_file" \
+          --out-file "$eval_file" \
+          --max-neg-evidences-per-page $max_neg_evidences_per_page
+    fi
+
+    echo '● Evaluating the finetuned transformer model...'
+    env "PYTHONPATH=src" \
+    pipenv run python3 'src/pipeline/sentence-retrieval/model.py' \
+        --model_type 'bert' \
+        --model_name_or_path 'bert-base-cased' \
+        --max_seq_length 128 \
+        --task_name 'sentence_retrieval' \
+        --output_dir "$model_path" \
+        --cache_dir "$transformers_cache_path" \
+        --do_eval \
+        --eval_in_file "$eval_file" \
+        --per_gpu_eval_batch_size=32
+  fi
+
+  for filetype in {dev,test,train}; do
+    local dataset_file="$dataset_path/$filetype.jsonl"
+    local sent_ret_file="$sent_ret_path/sentences.predicted.$filetype.jsonl"
+    local doc_ret_file="$doc_ret_path/documents.predicted.$filetype.jsonl"
+
+    local sent_score_file="$sent_ret_path/sentences.scored.$filetype.tsv"
+    local sent_file="$sent_ret_path/sentences.all.$filetype.tsv"
+    local score_file="$sent_ret_path/sentences.score.$filetype.tsv"
+
+    if [ ! -f "$sent_ret_file" ]; then
+      if [ ! -f "$sent_score_file" ]; then
+        if [ ! -f "$sent_file" ]; then
+          echo "● Generating sentences to score from retrieved documents for claims in $doc_ret_file..."
+          env "PYTHONPATH=src" \
+          pipenv run python3 'src/pipeline/sentence-retrieval/generate.py' \
+              --prediction \
+              --db-file "$db_file" \
+              --in-file "$doc_ret_file" \
+              --out-file "$sent_file"
+        fi
+
+        if [ ! -f "$score_file" ]; then
+          echo "● Scoring sentences from retrieved documents for claims in $sent_file..."
+          env "PYTHONPATH=src" \
+          pipenv run python3 'src/pipeline/sentence-retrieval/model.py' \
+              --model_type 'bert' \
+              --model_name_or_path 'bert-base-cased' \
+              --max_seq_length 128 \
+              --task_name 'sentence_retrieval' \
+              --output_dir "$model_path" \
+              --cache_dir "$transformers_cache_path" \
+              --do_predict \
+              --predict_in_file "$sent_file" \
+              --predict_out_file "$score_file" \
+              --per_gpu_predict_batch_size=32
+        fi
+
+        echo "● Conbining $sent_file and $score_file in $sent_score_file..."
+        paste -d'\t' "$sent_file" "$score_file" > "$sent_score_file"
+      fi
+
+      echo "● Retrieving the top $max_sent_per_claim evidences for each claim in $dataset_file..."
+      env "PYTHONPATH=src" \
+      pipenv run python3 'src/pipeline/sentence-retrieval/run.py' \
+          --scores-file "$sent_score_file" \
+          --in-file "$dataset_file" \
+          --out-file "$sent_ret_file" \
+          --max-sent-per-claim $max_sent_per_claim
+    fi
+  done
+}
+
+
 # Run the pipeline
 function run() {
   # Read all the recognized flags and expected arguments.
@@ -218,6 +376,9 @@ function run() {
   fi
   if [ -z $parg_task ] || [[ $parg_task == "document_retrieval" ]]; then
     document_retrieval "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force $flag_download > >(tee -a "$PATH_D_LOGS/document_retrieval.log") 2>&1
+  fi
+  if [ -z $parg_task ] || [[ $parg_task == "sentence_retrieval" ]]; then
+    sentence_retrieval "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force $flag_download > >(tee -a "$PATH_D_LOGS/sentence_retrieval.log") 2>&1
   fi
 }
 
