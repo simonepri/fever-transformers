@@ -123,10 +123,14 @@ def fever_convert_examples_to_features(
 def fever_compute_metrics(task_name, preds, labels):
     def mse(preds, labels):
         return np.mean((labels - preds) ** 2)
+    def accuracy(preds, labels):
+        return (preds == labels).mean()
 
     assert len(preds) == len(labels)
     if task_name == "sentence_retrieval":
         return {"mse": mse(preds, labels)}
+    if task_name == "claim_verification":
+        return {"acc": accuracy(preds, labels)}
     else:
         raise KeyError(task_name)
 
@@ -180,7 +184,7 @@ def process_evid(sentence):
 
 def process_label(label):
     label = convert_to_unicode(label)
-    return int(label)
+    return label
 
 
 class SentenceRetrievalProcessor(DataProcessor):
@@ -196,7 +200,7 @@ class SentenceRetrievalProcessor(DataProcessor):
                 text_a = process_sent(line[1])
                 text_b = process_evid(line[4])
                 text_b = title + " : " + text_b
-                label = -1 if purpose == "predict" else process_label(line[5])
+                label = process_label(line[5]) if purpose != "predict" else self.get_dummy_label()
                 yield InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label)
 
     def get_length(self, file_path):
@@ -207,17 +211,30 @@ class SentenceRetrievalProcessor(DataProcessor):
         """See base class."""
         return [None]
 
+    def get_dummy_label(self):
+        return "-1"
+
+
+class ClaimVerificationProcessor(SentenceRetrievalProcessor):
+    """Processor for the claim verification data set."""
+
+    def get_labels(self):
+        """See base class."""
+        return ["R", "S", "N"] # NOT ENOUGH INFO, REFUTES, SUPPORTS
+
+    def get_dummy_label(self):
+        return "N"
 
 fever_processors = {
     "sentence_retrieval": SentenceRetrievalProcessor,
-    #"claim_verification": ClaimVerificationProcessor,
+    "claim_verification": ClaimVerificationProcessor,
 }
 
 fever_tasks_num_labels = {
     "sentence_retrieval": 1,
-    #"claim_verification": 3,
+    "claim_verification": 3,
 }
 fever_output_modes = {
     "sentence_retrieval": "regression",
-    #"claim_verification": "classification",
+    "claim_verification": "classification",
 }
