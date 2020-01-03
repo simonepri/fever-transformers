@@ -116,6 +116,66 @@ function build_db() {
 }
 
 
+# Execute the document retrieval step
+function document_retrieval() {
+  local fever_path=$1
+  local pipeline_path=$2
+  local cache_path=$3
+  local force=$4
+  local download=$5
+
+  local doc_ret_path="$pipeline_path/document-retrieval"
+  local db_path="$pipeline_path/build-db"
+  local dataset_path="$fever_path/dataset"
+
+  local allen_cache_path="$cache_path/allen"
+  local nltk_cache_path="$cache_path/nltk"
+
+  local db_file="$db_path/wikipedia.db"
+
+  local max_docs_per_claim=7
+
+  if (( $force != 0 )); then
+    rm -rf "$doc_ret_path"
+  fi
+
+  if [ ! -d "$doc_ret_path" ]; then
+    mkdir -p "$doc_ret_path"
+
+    if (( $download != 0)); then
+      local zip_file="$pipeline_path/document-retrieval.zip"
+
+      echo '● Downloading the output of the document retrieval step instead of computing it...'
+      wget -q --show-progress --progress=bar:force -O "$zip_file" \
+      'https://github.com/simonepri/fever-transformers/releases/download/0.0.1/document-retrieval.zip'
+      if [ $? -eq 0 ]; then
+        unzip -o -j "$zip_file" -d "$doc_ret_path"
+        rm "$zip_file"
+        return
+      else
+        rm "$zip_file"
+        echo 'Download failed...'
+      fi
+    fi
+  fi
+
+  for filetype in {dev,test,train}; do
+    local dataset_file="$dataset_path/$filetype.jsonl"
+    local doc_ret_file="$doc_ret_path/documents.predicted.$filetype.jsonl"
+
+    if [ ! -f "$doc_ret_file" ]; then
+      echo "● Retrieving the top $max_docs_per_claim documents for each claim in $dataset_file..."
+      env "PYTHONPATH=src NLTK_DATA=$nltk_cache_path ALLENNLP_CACHE_ROOT=$allen_cache_path" \
+      pipenv run python3 'src/pipeline/document-retrieval/run.py' \
+          --db-file "$db_file" \
+          --in-file "$dataset_file" \
+          --out-file "$doc_ret_file" \
+          --max-docs-per-claim $max_docs_per_claim
+    fi
+  done
+}
+
+
 # Run the pipeline
 function run() {
   # Read all the recognized flags and expected arguments.
@@ -155,6 +215,9 @@ function run() {
   fi
   if [ -z $parg_task ] || [[ $parg_task == "build_db" ]]; then
     build_db "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force $flag_download > >(tee -a "$PATH_D_LOGS/build_db.log") 2>&1
+  fi
+  if [ -z $parg_task ] || [[ $parg_task == "document_retrieval" ]]; then
+    document_retrieval "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force $flag_download > >(tee -a "$PATH_D_LOGS/document_retrieval.log") 2>&1
   fi
 }
 
