@@ -318,7 +318,7 @@ function sentence_retrieval() {
               --per_gpu_predict_batch_size=32
         fi
 
-        echo "● Conbining $sent_file and $score_file in $sent_score_file..."
+        echo "● Combining $sent_file and $score_file in $sent_score_file..."
         paste -d'\t' "$sent_file" "$score_file" > "$sent_score_file"
       fi
 
