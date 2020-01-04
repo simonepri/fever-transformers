@@ -14,7 +14,7 @@ from tqdm import tqdm
 
 def get_claims_label(labels_file):
     claim_labels = defaultdict(lambda: [])
-    label_map = ["NOT ENOUGH INFO", "REFUTES", "SUPPORTS"]
+    label_map = ["REFUTES", "SUPPORTS", "NOT ENOUGH INFO"]
     with open(labels_file, "r") as f:
         nlines = reduce(lambda a, b: a + b, map(lambda x: 1, f.readlines()), 0)
         f.seek(0)

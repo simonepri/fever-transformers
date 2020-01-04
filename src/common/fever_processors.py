@@ -221,7 +221,7 @@ class ClaimVerificationProcessor(SentenceRetrievalProcessor):
 
     def get_labels(self):
         """See base class."""
-        return ["R", "S", "N"]  # NOT ENOUGH INFO, REFUTES, SUPPORTS
+        return ["R", "S", "N"]  # REFUTES, SUPPORTS, NOT ENOUGH INFO
 
     def get_dummy_label(self):
         return "N"
