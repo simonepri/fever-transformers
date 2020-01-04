@@ -527,7 +527,7 @@ function generate_submission() {
       local dataset_file="$dataset_path/$filetype.jsonl"
       local claim_ver_file="$claim_ver_path/claims.predicted.$filetype.jsonl"
       local sub_file="$sub_path/submission.$filetype.jsonl"
-      if [ ! -f $sub_file ]; then
+      if [ ! -f "$sub_file" ]; then
         env "PYTHONPATH=src" \
         pipenv run python3 'src/pipeline/generate-submission/run.py' \
             --in-file "$claim_ver_file" \
