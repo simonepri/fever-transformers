@@ -495,6 +495,7 @@ function generate_submission() {
   local force=$4
   local download=$5
 
+  local dataset_path="$fever_path/dataset"
   local sub_path="$pipeline_path/generate-submission"
   local claim_ver_path="$pipeline_path/claim-verification"
 
@@ -522,14 +523,21 @@ function generate_submission() {
     fi
 
     echo '● Building the submission files...'
-    for filetype in {dev,test,train}; do
+    for filetype in {dev,train}; do
+      local dataset_file="$dataset_path/$filetype.jsonl"
       local claim_ver_file="$claim_ver_path/claims.predicted.$filetype.jsonl"
       local sub_file="$sub_path/submission.$filetype.jsonl"
+      if [ ! -f $sub_file ]; then
+        env "PYTHONPATH=src" \
+        pipenv run python3 'src/pipeline/generate-submission/run.py' \
+            --in-file "$claim_ver_file" \
+            --out-file "$sub_file"
 
-      env "PYTHONPATH=src" \
-      pipenv run python3 'src/pipeline/generate-submission/run.py' \
-          --in-file "$claim_ver_file" \
-          --out-file "$sub_file"
+        env "PYTHONPATH=src" \
+        pipenv run python3 'src/pipeline/generate-submission/evaluate.py' \
+            --golden-file "$dataset_file" \
+            --prediction-file "$sub_file"
+      fi
     done
   fi
 }
