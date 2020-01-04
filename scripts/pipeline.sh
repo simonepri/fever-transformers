@@ -183,6 +183,8 @@ function sentence_retrieval() {
   local cache_path=$3
   local force=$4
   local download=$5
+  local model_type=$6
+  local model_name=$7
 
   local doc_ret_path="$pipeline_path/document-retrieval"
   local sent_ret_path="$pipeline_path/sentence-retrieval"
@@ -238,8 +240,8 @@ function sentence_retrieval() {
     echo '● Finetuning the transformer model...'
     env "PYTHONPATH=src" \
     pipenv run python3 'src/pipeline/sentence-retrieval/model.py' \
-        --model_type 'bert' \
-        --model_name_or_path 'bert-base-cased' \
+        --model_type "$model_type" \
+        --model_name_or_path "$model_name" \
         --max_seq_length 128 \
         --task_name 'sentence_retrieval' \
         --output_dir "$model_path" \
@@ -270,8 +272,8 @@ function sentence_retrieval() {
     echo '● Evaluating the finetuned transformer model...'
     env "PYTHONPATH=src" \
     pipenv run python3 'src/pipeline/sentence-retrieval/model.py' \
-        --model_type 'bert' \
-        --model_name_or_path 'bert-base-cased' \
+        --model_type "$model_type" \
+        --model_name_or_path "$model_name" \
         --max_seq_length 128 \
         --task_name 'sentence_retrieval' \
         --output_dir "$model_path" \
@@ -306,8 +308,8 @@ function sentence_retrieval() {
           echo "● Scoring sentences from retrieved documents for claims in $sent_file..."
           env "PYTHONPATH=src" \
           pipenv run python3 'src/pipeline/sentence-retrieval/model.py' \
-              --model_type 'bert' \
-              --model_name_or_path 'bert-base-cased' \
+              --model_type "$model_type" \
+              --model_name_or_path "$model_name" \
               --max_seq_length 128 \
               --task_name 'sentence_retrieval' \
               --output_dir "$model_path" \
@@ -341,6 +343,8 @@ function claim_verification() {
   local cache_path=$3
   local force=$4
   local download=$5
+  local model_type=$6
+  local model_name=$7
 
   local doc_ret_path="$pipeline_path/document-retrieval"
   local sent_ret_path="$pipeline_path/sentence-retrieval"
@@ -393,8 +397,8 @@ function claim_verification() {
     echo '● Finetuning the transformer model...'
     env "PYTHONPATH=src" \
     pipenv run python3 'src/pipeline/claim-verification/model.py' \
-        --model_type 'bert' \
-        --model_name_or_path 'bert-base-cased' \
+        --model_type "$model_type" \
+        --model_name_or_path "$model_name" \
         --max_seq_length 128 \
         --task_name 'claim_verification' \
         --output_dir "$model_path" \
@@ -424,8 +428,8 @@ function claim_verification() {
     echo '● Evaluating the finetuned transformer model...'
     env "PYTHONPATH=src" \
     pipenv run python3 'src/pipeline/claim-verification/model.py' \
-        --model_type 'bert' \
-        --model_name_or_path 'bert-base-cased' \
+        --model_type "$model_type" \
+        --model_name_or_path "$model_name" \
         --max_seq_length 128 \
         --task_name 'claim_verification' \
         --output_dir "$model_path" \
@@ -460,8 +464,8 @@ function claim_verification() {
           echo "● Labelling claims from retrieved sentences for claims in $claim_file..."
           env "PYTHONPATH=src" \
           pipenv run python3 'src/pipeline/claim-verification/model.py' \
-              --model_type 'bert' \
-              --model_name_or_path 'bert-base-cased' \
+              --model_type "$model_type" \
+              --model_name_or_path "$model_name" \
               --max_seq_length 128 \
               --task_name 'claim_verification' \
               --output_dir "$model_path" \
@@ -550,11 +554,15 @@ function run() {
   local flag_force=0
   local flag_download=0
   local flag_data='data'
+  local flag_model_type='bert'
+  local flag_model_name='bert-base-cased'
   while [[ $1 != "" ]]; do
     case "$1" in
       --force ) flag_force=1; shift;;
       --download ) flag_download=1; shift;;
       --data ) flag_data=$2; shift 2;;
+      --model-type) flag_model_type=$2; shift 2;;
+      --model-name) flag_model_name=$2; shift 2;;
       -* ) shift;;
       * ) pargs+=("$1"); shift;;
     esac
@@ -587,10 +595,10 @@ function run() {
     document_retrieval "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force $flag_download > >(tee -a "$PATH_D_LOGS/document_retrieval.log") 2>&1
   fi
   if [ -z $parg_task ] || [[ $parg_task == "sentence_retrieval" ]]; then
-    sentence_retrieval "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force $flag_download > >(tee -a "$PATH_D_LOGS/sentence_retrieval.log") 2>&1
+    sentence_retrieval "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force $flag_download  "$flag_model_type" "$flag_model_name" > >(tee -a "$PATH_D_LOGS/sentence_retrieval.log") 2>&1
   fi
   if [ -z $parg_task ] || [[ $parg_task == "claim_verification" ]]; then
-    claim_verification "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force $flag_download > >(tee -a "$PATH_D_LOGS/claim_verification.log") 2>&1
+    claim_verification "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force $flag_download "$flag_model_type" "$flag_model_name" > >(tee -a "$PATH_D_LOGS/claim_verification.log") 2>&1
   fi
   if [ -z $parg_task ] || [[ $parg_task == "generate_submission" ]]; then
     generate_submission "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force $flag_download > >(tee -a "$PATH_D_LOGS/generate_submission.log") 2>&1
