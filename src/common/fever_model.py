@@ -4,7 +4,7 @@
 #
 # Additional license and copyright information for this source code are available at:
 # https://github.com/huggingface/transformers/blob/master/LICENSE
-""" Finetuning the library models for sequence classification on FEVER (Bert, XLM, XLNet, RoBERTa)."""
+""" Finetuning the library models for sequence classification on FEVER (Bert, XLM, XLNet, RoBERTa, Albert, XLM-RoBERTa)."""
 
 from __future__ import absolute_import, division, print_function
 
