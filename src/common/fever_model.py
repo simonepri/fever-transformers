@@ -358,7 +358,7 @@ def load_and_cache_examples(args, task, tokenizer, file_path, purpose="train"):
 
         # Convert to Tensors and build dataset
         all_input_ids = torch.empty((num_examples, args.max_seq_length), dtype=torch.int)
-        all_attention_mask = torch.empty((num_examples, args.max_seq_length), dtype=torch.bool)
+        all_attention_mask = torch.empty((num_examples, args.max_seq_length), dtype=torch.int8)
         all_token_type_ids = torch.empty((num_examples, args.max_seq_length), dtype=torch.int8)
         if output_mode == "classification":
             all_labels = torch.empty(num_examples, dtype=torch.long)
