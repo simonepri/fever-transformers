@@ -537,15 +537,11 @@ function generate_submission() {
             --in-file "$claim_ver_file" \
             --out-file "$sub_file"
       fi
-      echo "● Evaluating predictions in $claim_ver_file..."
-      env "PYTHONPATH=src" \
-      pipenv run python3 'src/pipeline/generate-submission/evaluate.py' \
-          --golden-file "$dataset_file" \
-          --prediction-file "$sub_file"
     done
     for filetype in {dev,train}; do
-      local claim_ver_file="$claim_ver_path/claims.predicted.$filetype.jsonl"
-      echo "● Evaluating predictions in $claim_ver_file..."
+      local dataset_file="$dataset_path/$filetype.jsonl"
+      local sub_file="$sub_path/submission.$filetype.jsonl"
+      echo "● Evaluating predictions in $sub_file..."
       env "PYTHONPATH=src" \
       pipenv run python3 'src/pipeline/generate-submission/evaluate.py' \
           --golden-file "$dataset_file" \
