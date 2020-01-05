@@ -58,7 +58,7 @@ from common.fever_processors import fever_convert_examples_to_features as conver
 logger = logging.getLogger(__name__)
 
 ALL_MODELS = sum((tuple(conf.pretrained_config_archive_map.keys()) for conf in (BertConfig, XLNetConfig, XLMConfig,
-                                                                                RobertaConfig, DistilBertConfig)), ())
+                                                                                RobertaConfig, DistilBertConfig, AlbertConfig, XLMRobertaConfig)), ())
 
 MODEL_CLASSES = {
     "bert": (BertConfig, BertForSequenceClassification, BertTokenizer),
@@ -149,7 +149,7 @@ def train(args, model, tokenizer):
                       "attention_mask": batch[1].to(args.device),
                       "labels":         batch[3].to(args.device)}
             if args.model_type != "distilbert":
-                inputs["token_type_ids"] = batch[2].long().to(args.device) if args.model_type in ["bert", "xlnet"] else None  # XLM, DistilBERT and RoBERTa don"t use segment_ids
+                inputs["token_type_ids"] = batch[2].long().to(args.device) if args.model_type in ["bert", "xlnet", "albert"] else None  # XLM, DistilBERT, RoBERTa, and XLM-RoBERTa don't use segment_ids
             outputs = model(**inputs)
             loss = outputs[0]  # model outputs are always tuple in transformers (see doc)
 
@@ -252,7 +252,7 @@ def evaluate(args, model, tokenizer, prefix=""):
                       "attention_mask": batch[1].to(args.device),
                       "labels":         batch[3].to(args.device)}
             if args.model_type != "distilbert":
-                inputs["token_type_ids"] = batch[2].long().to(args.device) if args.model_type in ["bert", "xlnet"] else None  # XLM, DistilBERT and RoBERTa don"t use segment_ids
+                inputs["token_type_ids"] = batch[2].long().to(args.device) if args.model_type in ["bert", "xlnet", "albert"] else None  # XLM, DistilBERT, RoBERTa, and XLM-RoBERTa don't use segment_ids
             outputs = model(**inputs)
             tmp_eval_loss, logits = outputs[:2]
 
@@ -314,7 +314,7 @@ def predict(args, model, tokenizer):
                           "attention_mask": batch[1].to(args.device),
                           "labels":         batch[3].to(args.device)}
                 if args.model_type != "distilbert":
-                    inputs["token_type_ids"] = batch[2].long().to(args.device) if args.model_type in ["bert", "xlnet"] else None  # XLM, DistilBERT and RoBERTa don"t use segment_ids
+                    inputs["token_type_ids"] = batch[2].long().to(args.device) if args.model_type in ["bert", "xlnet", "albert"] else None  # XLM, DistilBERT, RoBERTa, and XLM-RoBERTa don't use segment_ids
                 outputs = model(**inputs)
                 logits = outputs[1]
 
