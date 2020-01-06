@@ -211,7 +211,7 @@ function sentence_retrieval() {
 
       echo '● Downloading the output of the sentence retrieval step instead of computing it...'
       wget -q --show-progress --progress=bar:force -O "$zip_file" \
-      'https://github.com/simonepri/fever-transformers/releases/download/0.0.1/sentence-retrieval.zip'
+      "https://github.com/simonepri/fever-transformers/releases/download/0.0.1/sentence-retrieval.$model_type.$model_name.zip"
       if [ $? -eq 0 ]; then
         unzip -o -j "$zip_file" -d "$sent_ret_path"
         rm "$zip_file"
@@ -369,7 +369,7 @@ function claim_verification() {
 
       echo '● Downloading the output of the claim verification step instead of computing it...'
       wget -q --show-progress --progress=bar:force -O "$zip_file" \
-      'https://github.com/simonepri/fever-transformers/releases/download/0.0.1/claim-verification.zip'
+      "https://github.com/simonepri/fever-transformers/releases/download/0.0.1/claim-verification.$model_type.$model_name.zip"
       if [ $? -eq 0 ]; then
         unzip -o -j "$zip_file" -d "$claim_ver_path"
         rm "$zip_file"
