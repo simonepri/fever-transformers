@@ -75,7 +75,6 @@ function build_db() {
   local pipeline_path=$2
   local cache_path=$3
   local force=$4
-  local download=$5
 
   local db_path="$pipeline_path/build-db"
   local wikipedia_path="$fever_path/wikipedia"
@@ -88,22 +87,6 @@ function build_db() {
 
   if [ ! -f "$db_file" ]; then
     mkdir -p "$db_path"
-
-    if (( $download != 0)); then
-      local zip_file="$pipeline_path/build-db.zip"
-
-      echo '● Downloading the output of the build db step instead of computing it...'
-      wget -q --show-progress --progress=bar:force -O "$zip_file" \
-      'https://github.com/simonepri/fever-transformers/releases/download/0.0.1/build-db.zip'
-      if [ $? -eq 0 ]; then
-        unzip -o -j "$zip_file" -d "$db_path"
-        rm "$zip_file"
-        return
-      else
-        rm "$zip_file"
-        echo 'Download failed...'
-      fi
-    fi
 
     echo '● Constructing an SQLite Database from the pre-processed Wikipedia articles...'
     env "PYTHONPATH=src" \
@@ -120,7 +103,6 @@ function document_retrieval() {
   local pipeline_path=$2
   local cache_path=$3
   local force=$4
-  local download=$5
 
   local doc_ret_path="$pipeline_path/document-retrieval"
   local db_path="$pipeline_path/build-db"
@@ -139,22 +121,6 @@ function document_retrieval() {
 
   if [ ! -d "$doc_ret_path" ]; then
     mkdir -p "$doc_ret_path"
-
-    if (( $download != 0)); then
-      local zip_file="$pipeline_path/document-retrieval.zip"
-
-      echo '● Downloading the output of the document retrieval step instead of computing it...'
-      wget -q --show-progress --progress=bar:force -O "$zip_file" \
-      'https://github.com/simonepri/fever-transformers/releases/download/0.0.1/document-retrieval.zip'
-      if [ $? -eq 0 ]; then
-        unzip -o -j "$zip_file" -d "$doc_ret_path"
-        rm "$zip_file"
-        return
-      else
-        rm "$zip_file"
-        echo 'Download failed...'
-      fi
-    fi
   fi
 
   for filetype in {dev,test,train}; do
@@ -180,9 +146,8 @@ function sentence_retrieval() {
   local pipeline_path=$2
   local cache_path=$3
   local force=$4
-  local download=$5
-  local model_type=$6
-  local model_name=$7
+  local model_type=$5
+  local model_name=$6
 
   local doc_ret_path="$pipeline_path/document-retrieval"
   local sent_ret_path="$pipeline_path/sentence-retrieval"
@@ -203,22 +168,6 @@ function sentence_retrieval() {
 
   if [ ! -d "$sent_ret_path" ]; then
     mkdir -p "$sent_ret_path"
-
-    if (( $download != 0)); then
-      local zip_file="$pipeline_path/sentence-retrieval.zip"
-
-      echo '● Downloading the output of the sentence retrieval step instead of computing it...'
-      wget -q --show-progress --progress=bar:force -O "$zip_file" \
-      "https://github.com/simonepri/fever-transformers/releases/download/0.0.1/sentence-retrieval.$model_type.$model_name.zip"
-      if [ $? -eq 0 ]; then
-        unzip -o -j "$zip_file" -d "$sent_ret_path"
-        rm "$zip_file"
-        return
-      else
-        rm "$zip_file"
-        echo 'Download failed...'
-      fi
-    fi
   fi
 
   if [ ! -f "$model_path/config.json" ]; then
@@ -349,9 +298,8 @@ function claim_verification() {
   local pipeline_path=$2
   local cache_path=$3
   local force=$4
-  local download=$5
-  local model_type=$6
-  local model_name=$7
+  local model_type=$5
+  local model_name=$6
 
   local doc_ret_path="$pipeline_path/document-retrieval"
   local sent_ret_path="$pipeline_path/sentence-retrieval"
@@ -370,22 +318,6 @@ function claim_verification() {
 
   if [ ! -d "$claim_ver_path" ]; then
     mkdir -p "$claim_ver_path"
-
-    if (( $download != 0)); then
-      local zip_file="$pipeline_path/claim-verification.zip"
-
-      echo '● Downloading the output of the claim verification step instead of computing it...'
-      wget -q --show-progress --progress=bar:force -O "$zip_file" \
-      "https://github.com/simonepri/fever-transformers/releases/download/0.0.1/claim-verification.$model_type.$model_name.zip"
-      if [ $? -eq 0 ]; then
-        unzip -o -j "$zip_file" -d "$claim_ver_path"
-        rm "$zip_file"
-        return
-      else
-        rm "$zip_file"
-        echo 'Download failed...'
-      fi
-    fi
   fi
 
   if [ ! -f "$model_path/config.json" ]; then
@@ -513,7 +445,6 @@ function generate_submission() {
   local pipeline_path=$2
   local cache_path=$3
   local force=$4
-  local download=$5
 
   local dataset_path="$fever_path/dataset"
   local sub_path="$pipeline_path/generate-submission"
@@ -525,22 +456,6 @@ function generate_submission() {
 
   if [ ! -f "$sub_path" ]; then
     mkdir -p "$sub_path"
-
-    if (( $download != 0)); then
-      local zip_file="$pipeline_path/generate-submission.zip"
-
-      echo '● Downloading the output of the generate submission step instead of computing it...'
-      wget -q --show-progress --progress=bar:force -O "$zip_file" \
-      'https://github.com/simonepri/fever-transformers/releases/download/0.0.1/generate-submission.zip'
-      if [ $? -eq 0 ]; then
-        unzip -o -j "$zip_file" -d "$sub_path"
-        rm "$zip_file"
-        return
-      else
-        rm "$zip_file"
-        echo 'Download failed...'
-      fi
-    fi
 
     for filetype in {dev,test,train}; do
       local dataset_file="$dataset_path/$filetype.jsonl"
@@ -563,14 +478,12 @@ function run() {
   # Read all the recognized flags and expected arguments.
   local -a pargs
   local flag_force=0
-  local flag_download=0
   local flag_data='data'
   local flag_model_type='bert'
   local flag_model_name='bert-base-cased'
   while [[ $1 != "" ]]; do
     case "$1" in
       --force ) flag_force=1; shift;;
-      --download ) flag_download=1; shift;;
       --data ) flag_data=$2; shift 2;;
       --model-type) flag_model_type=$2; shift 2;;
       --model-name) flag_model_name=$2; shift 2;;
@@ -594,25 +507,32 @@ function run() {
 
   # Execute the tasks
   if [ -z $parg_task ] || [[ $parg_task == "install_deps" ]]; then
-    install_deps "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force > >(tee -a "$PATH_D_LOGS/install_deps.log") 2>&1
+    install_deps "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force \
+    > >(tee -a "$PATH_D_LOGS/install_deps.log") 2>&1
   fi
   if [ -z $parg_task ] || [[ $parg_task == "download_fever" ]]; then
-    download_fever "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force > >(tee -a "$PATH_D_LOGS/download_fever.log") 2>&1
+    download_fever "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force \
+    > >(tee -a "$PATH_D_LOGS/download_fever.log") 2>&1
   fi
   if [ -z $parg_task ] || [[ $parg_task == "build_db" ]]; then
-    build_db "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force $flag_download > >(tee -a "$PATH_D_LOGS/build_db.log") 2>&1
+    build_db "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force \
+    > >(tee -a "$PATH_D_LOGS/build_db.log") 2>&1
   fi
   if [ -z $parg_task ] || [[ $parg_task == "document_retrieval" ]]; then
-    document_retrieval "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force $flag_download > >(tee -a "$PATH_D_LOGS/document_retrieval.log") 2>&1
+    document_retrieval "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force \
+    > >(tee -a "$PATH_D_LOGS/document_retrieval.log") 2>&1
   fi
   if [ -z $parg_task ] || [[ $parg_task == "sentence_retrieval" ]]; then
-    sentence_retrieval "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force $flag_download  "$flag_model_type" "$flag_model_name" > >(tee -a "$PATH_D_LOGS/sentence_retrieval.log") 2>&1
+    sentence_retrieval "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force "$flag_model_type" "$flag_model_name" \
+    > >(tee -a "$PATH_D_LOGS/sentence_retrieval.log") 2>&1
   fi
   if [ -z $parg_task ] || [[ $parg_task == "claim_verification" ]]; then
-    claim_verification "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force $flag_download "$flag_model_type" "$flag_model_name" > >(tee -a "$PATH_D_LOGS/claim_verification.log") 2>&1
+    claim_verification "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force "$flag_model_type" "$flag_model_name" \
+    > >(tee -a "$PATH_D_LOGS/claim_verification.log") 2>&1
   fi
   if [ -z $parg_task ] || [[ $parg_task == "generate_submission" ]]; then
-    generate_submission "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force $flag_download > >(tee -a "$PATH_D_LOGS/generate_submission.log") 2>&1
+    generate_submission "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force \
+    > >(tee -a "$PATH_D_LOGS/generate_submission.log") 2>&1
   fi
 }
 

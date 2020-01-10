@@ -47,7 +47,8 @@ bash scripts/pipeline.sh download_fever
 bash scripts/pipeline.sh build_db
 
 # Process the datasets through the UKP-Athene document retrieval model.
-bash scripts/pipeline.sh document_retrieval --download
+# Alternatively you can run bash scripts/release.sh --download output ukp-athene
+bash scripts/pipeline.sh document_retrieval
 
 # Process the datasets through the transformer network sentence retrieval model.
 # See below for the possible values of model type and name.
@@ -68,7 +69,6 @@ The following flags can be used to modify the behavior of the CLI.
 | Flag | Purpose |
 |------|---------|
 | `‑‑force` | Delete the folder containing the data of the task and then start the task |
-|  `‑‑download` | Download the output of the command on the FEVER dataset instead of computing it |
 |  `‑‑model‑type` | Set the transformer model to use. It can be one of: <br/>`bert`, `xlnet`, `xlm`, `roberta`, `distilbert`, `albert`, `xlmroberta` |
 | `‑‑model‑name` | Set the pretrained checkpoint of the model to use. It can be one of: <br/> `bert-base-uncased`, `bert-large-uncased`, `bert-base-cased`, `bert-large-cased`, `bert-base-multilingual-uncased`, `bert-base-multilingual-cased`, `bert-base-chinese`, `bert-base-german-cased`, `bert-large-uncased-whole-word-masking`, `bert-large-cased-whole-word-masking`, `bert-large-uncased-whole-word-masking-finetuned-squad`, `bert-large-cased-whole-word-masking-finetuned-squad`, `bert-base-cased-finetuned-mrpc`, `bert-base-german-dbmdz-cased`, `bert-base-german-dbmdz-uncased`, `bert-base-japanese`, `bert-base-japanese-whole-word-masking`, `bert-base-japanese-char`, `bert-base-japanese-char-whole-word-masking`, `bert-base-finnish-cased-v1`, `bert-base-finnish-uncased-v1`, `xlnet-base-cased`, `xlnet-large-cased`, `xlm-mlm-en-2048`, `xlm-mlm-ende-1024`, `xlm-mlm-enfr-1024`, `xlm-mlm-enro-1024`, `xlm-mlm-tlm-xnli15-1024`, `xlm-mlm-xnli15-1024`, `xlm-clm-enfr-1024`, `xlm-clm-ende-1024`, `xlm-mlm-17-1280`, `xlm-mlm-100-1280`, `roberta-base`, `roberta-large`, `roberta-large-mnli`, `distilroberta-base`, `roberta-base-openai-detector`, `roberta-large-openai-detector`, `distilbert-base-uncased`, `distilbert-base-uncased-distilled-squad, distilbert-base-german-cased`, `distilbert-base-multilingual-cased`, `albert-base-v1`, `albert-large-v1, albert-xlarge-v1`, `albert-xxlarge-v1`, `albert-base-v2, albert-large-v2`, `albert-xlarge-v2`, `albert-xxlarge-v2, xlm-roberta-base`, `xlm-roberta-large`, `xlm-roberta-large-finetuned-conll02-dutch`, `xlm-roberta-large-finetuned-conll02-spanish`, `xlm-roberta-large-finetuned-conll03-english`, `xlm-roberta-large-finetuned-conll03-german` |
 
