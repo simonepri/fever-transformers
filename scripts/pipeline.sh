@@ -6,7 +6,6 @@ function install_deps() {
   local pipeline_path=$2
   local cache_path=$3
   local force=$4
-  local download=$5
 
   local venv_path=".venv"
 
@@ -37,7 +36,6 @@ function download_fever() {
   local pipeline_path=$2
   local cache_path=$3
   local force=$4
-  local download=$5
 
   local dataset_path="$fever_path/dataset"
   local wikipedia_path="$fever_path/wikipedia"
@@ -587,10 +585,10 @@ function run() {
 
   # Execute the tasks
   if [ -z $parg_task ] || [[ $parg_task == "install_deps" ]]; then
-    install_deps "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force $flag_download > >(tee -a "$PATH_D_LOGS/install_deps.log") 2>&1
+    install_deps "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force > >(tee -a "$PATH_D_LOGS/install_deps.log") 2>&1
   fi
   if [ -z $parg_task ] || [[ $parg_task == "download_fever" ]]; then
-    download_fever "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force $flag_download > >(tee -a "$PATH_D_LOGS/download_fever.log") 2>&1
+    download_fever "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force > >(tee -a "$PATH_D_LOGS/download_fever.log") 2>&1
   fi
   if [ -z $parg_task ] || [[ $parg_task == "build_db" ]]; then
     build_db "$PATH_D_FEVER" "$PATH_D_PIPELINE" "$PATH_D_CACHE" $flag_force $flag_download > >(tee -a "$PATH_D_LOGS/build_db.log") 2>&1
