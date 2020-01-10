@@ -554,15 +554,6 @@ function generate_submission() {
             --out-file "$sub_file"
       fi
     done
-    for filetype in {dev,train}; do
-      local dataset_file="$dataset_path/$filetype.jsonl"
-      local sub_file="$sub_path/submission.$filetype.jsonl"
-      echo "● Evaluating predictions in $sub_file..."
-      env "PYTHONPATH=src" \
-      pipenv run python3 'src/pipeline/generate-submission/evaluate.py' \
-          --golden-file "$dataset_file" \
-          --prediction-file "$sub_file"
-    done
   fi
 }
 

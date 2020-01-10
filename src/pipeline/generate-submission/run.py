@@ -11,28 +11,6 @@ from functools import reduce
 
 from tqdm import tqdm
 
-
-def predict_claim(line):
-    claim_id, classified_evidences = line["id"], line["classified_evidences"]
-    prediction = ("NOT ENOUGH INFO", [])
-    for label, (page, sent_id, _) in classified_evidences:
-        if label == "NOT ENOUGH INFO":
-            continue
-        elif label == "SUPPORTS":
-            if prediction[0] != label:
-                prediction = (label, [])
-            prediction[1].append((page, sent_id))
-        elif label == "REFUTES":
-            if prediction[0] == "SUPPORTS":
-                continue
-            if prediction[0] != label:
-                prediction = (label, [])
-            prediction[1].append((page, sent_id))
-        else:
-            raise KeyError(label)
-    return {"id": claim_id, "predicted_label": prediction[0], "predicted_evidence": prediction[1]}
-
-
 def main(in_file, out_file):
     path = os.getcwd()
     in_file = os.path.join(path, in_file)
@@ -44,7 +22,12 @@ def main(in_file, out_file):
             fin.seek(0)
             lines = map(json.loads, fin.readlines())
             for line in tqdm(lines, desc="Claim", total=nlines):
-                json.dump(predict_claim(line), fout)
+                prediction = {
+                    "id": line["id"],
+                    "predicted_label": line["predicted_label"],
+                    "predicted_evidence": line["predicted_label"]
+                }
+                json.dump(prediction, fout)
                 fout.write("\n")
 
 
