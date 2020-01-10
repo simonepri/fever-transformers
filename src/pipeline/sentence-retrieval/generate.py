@@ -15,13 +15,13 @@ from tqdm import tqdm
 from common.fever_doc_db import FeverDocDB
 
 
-def get_all_claim_evidences(docs, pred_pages):
-    for page in pred_pages:
+def get_all_sentences(docs, pages):
+    for page in pages:
         for evidence in sample_evidences(docs, page, num_samples=None):
             yield evidence
 
 
-def get_positive_claim_evidences(docs, evid_sets):
+def get_evidence_sentences(docs, evid_sets):
     evidences = set()
     for evid_set in evid_sets:
         for item in evid_set:
@@ -31,7 +31,7 @@ def get_positive_claim_evidences(docs, evid_sets):
     return evidences
 
 
-def get_negative_claim_evidences(docs, evid_sets, pred_pages, max_neg_evidences_per_page=None):
+def get_non_evidence_sentences(docs, evid_sets, pred_pages, max_non_evidence_per_page=None):
     positive_sentences = {}
     for evid_set in evid_sets:
         for item in evid_set:
@@ -43,7 +43,7 @@ def get_negative_claim_evidences(docs, evid_sets, pred_pages, max_neg_evidences_
     # sample negative examples from pages where good evidences are, by
     # avoiding to select the good evidences themself
     for page, positives in positive_sentences.items():
-        for evidence in sample_evidences(docs, page, positives, num_samples=max_neg_evidences_per_page):
+        for evidence in sample_evidences(docs, page, positives, num_samples=max_non_evidence_per_page):
             yield evidence
 
     # sample negative examples from other predicted pages in which there
@@ -51,7 +51,7 @@ def get_negative_claim_evidences(docs, evid_sets, pred_pages, max_neg_evidences_
     for page in pred_pages:
         if page in positive_sentences:
             continue
-        for evidence in sample_evidences(docs, page, num_samples=max_neg_evidences_per_page):
+        for evidence in sample_evidences(docs, page, num_samples=max_non_evidence_per_page):
             yield evidence
 
 
@@ -84,7 +84,7 @@ def fetch_documents(db, evid_sets, pred_pages):
     return docs
 
 
-def main(db_file, in_file, out_file, max_neg_evidences_per_page=None, prediction=None):
+def main(db_file, in_file, out_file, max_non_evidence_per_page=None, prediction=None):
     path = os.getcwd()
     outfile = open(os.path.join(path, out_file), "w+")
 
@@ -108,13 +108,13 @@ def main(db_file, in_file, out_file, max_neg_evidences_per_page=None, prediction
 
             if prediction:
                 # extract all the sentences for the documents predicted for this claim
-                for page, sent_id, sentence in get_all_claim_evidences(docs, pred_pages):
+                for page, sent_id, sentence in get_all_sentences(docs, pred_pages):
                     outfile.write("\t".join([str(id), claim, page, str(sent_id), sentence]) + "\n")
             else:
-                # write positive and negative evidence to file
-                for page, sent_id, sentence in get_positive_claim_evidences(docs, evid_sets):
+                # write positive and negative evidence examples to file
+                for page, sent_id, sentence in get_evidence_sentences(docs, evid_sets):
                     outfile.write("\t".join([str(id), claim, page, str(sent_id), sentence, "1"]) + "\n")
-                for page, sent_id, sentence in get_negative_claim_evidences(docs, evid_sets, pred_pages, max_neg_evidences_per_page=max_neg_evidences_per_page):
+                for page, sent_id, sentence in get_non_evidence_sentences(docs, evid_sets, pred_pages, max_non_evidence_per_page=max_non_evidence_per_page):
                     outfile.write("\t".join([str(id), claim, page, str(sent_id), sentence, "0"]) + "\n")
     outfile.close()
 
@@ -126,9 +126,9 @@ if __name__ == "__main__":
     parser.add_argument("--in-file", type=str, help="input dataset")
     parser.add_argument("--out-file", type=str,
                         help="path to save output dataset")
-    parser.add_argument("--max-neg-evidences-per-page", type=int,
+    parser.add_argument("--max-non-evidence-per-page", type=int,
                         help="number of negative evidance to in each of the page that are relevant for a claim")
     parser.add_argument("--prediction", action='store_true',
                         help="when set it generate all the sentences of the prediceted documents")
     args = parser.parse_args()
-    main(args.db_file, args.in_file, args.out_file, max_neg_evidences_per_page=args.max_neg_evidences_per_page, prediction=args.prediction)
+    main(args.db_file, args.in_file, args.out_file, max_non_evidence_per_page=args.max_non_evidence_per_page, prediction=args.prediction)

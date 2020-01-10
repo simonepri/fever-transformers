@@ -194,8 +194,8 @@ function sentence_retrieval() {
   local model_path="$sent_ret_path/model"
   local db_file="$db_path/wikipedia.db"
 
-  local max_neg_evidences_per_page=2
-  local max_sent_per_claim=5
+  local max_non_evidence_per_page=2
+  local max_sentences_per_claim=5
 
   if (( $force != 0 )); then
     rm -rf "$sent_ret_path"
@@ -232,7 +232,7 @@ function sentence_retrieval() {
           --db-file "$db_file" \
           --in-file "$doc_ret_file" \
           --out-file "$tuning_file" \
-          --max-neg-evidences-per-page $max_neg_evidences_per_page
+          --max-non-evidence-per-page $max_non_evidence_per_page
     fi
 
     echo '● Finetuning the transformer model...'
@@ -264,7 +264,7 @@ function sentence_retrieval() {
           --db-file "$db_file" \
           --in-file "$doc_ret_file" \
           --out-file "$eval_file" \
-          --max-neg-evidences-per-page $max_neg_evidences_per_page
+          --max-non-evidence-per-page $max_non_evidence_per_page
     fi
 
     echo '● Evaluating the finetuned transformer model...'
@@ -322,13 +322,13 @@ function sentence_retrieval() {
         paste -d'\t' "$sent_file" "$score_file" > "$sent_score_file"
       fi
 
-      echo "● Retrieving the top $max_sent_per_claim evidences for each claim in $dataset_file..."
+      echo "● Retrieving the top $max_sentences_per_claim evidence sentences for each claim in $dataset_file..."
       env "PYTHONPATH=src" \
       pipenv run python3 'src/pipeline/sentence-retrieval/run.py' \
           --scores-file "$sent_score_file" \
           --in-file "$dataset_file" \
           --out-file "$sent_ret_file" \
-          --max-sent-per-claim $max_sent_per_claim
+          --max-sentences-per-claim $max_sentences_per_claim
     fi
   done
 }
