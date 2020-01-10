@@ -12,7 +12,7 @@ from functools import reduce
 from tqdm import tqdm
 
 
-def get_claims_label(labels_file):
+def get_classified_sentences(labels_file):
     claim_labels = defaultdict(lambda: [])
     label_map = ["REFUTES", "SUPPORTS", "NOT ENOUGH INFO"]
     with open(labels_file, "r") as f:
@@ -27,13 +27,33 @@ def get_claims_label(labels_file):
     return claim_labels
 
 
+def predict_claim(classified_sentences):
+    prediction = ("NOT ENOUGH INFO", [])
+    for label, (page, sent_id, _) in classified_sentences:
+        if label == "NOT ENOUGH INFO":
+            continue
+        elif label == "SUPPORTS":
+            if prediction[0] != label:
+                prediction = (label, [])
+            prediction[1].append((page, sent_id))
+        elif label == "REFUTES":
+            if prediction[0] == "SUPPORTS":
+                continue
+            if prediction[0] != label:
+                prediction = (label, [])
+            prediction[1].append((page, sent_id))
+        else:
+            raise KeyError(label)
+    return {"predicted_label": prediction[0], "predicted_evidence": prediction[1]}
+
+
 def main(labels_file, in_file, out_file):
     path = os.getcwd()
     labels_file = os.path.join(path, labels_file)
     in_file = os.path.join(path, in_file)
     out_file = os.path.join(path, out_file)
 
-    claims_label = get_claims_label(labels_file)
+    classified_sentences = get_classified_sentences(labels_file)
 
     with open(out_file, "w+") as fout:
         with open(in_file, "r") as fin:
@@ -42,7 +62,8 @@ def main(labels_file, in_file, out_file):
             lines = map(json.loads, fin.readlines())
             for line in tqdm(lines, desc="Claim", total=nlines):
                 claim_id = line["id"]
-                line["classified_evidences"] = claims_label[claim_id]
+                line["classified_sentences"] = classified_sentences[claim_id]
+                line.update(predict_claim(classified_sentences[claim_id]))
                 fout.write(json.dumps(line) + "\n")
 
 

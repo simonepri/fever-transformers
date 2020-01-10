@@ -478,7 +478,7 @@ function claim_verification() {
         paste -d'\t' "$claim_file" "$label_file" > "$claim_label_file"
       fi
 
-      echo "● Retrieving the top $max_sent_per_claim evidences for each claim in $dataset_file..."
+      echo "● Verifying each claim in $dataset_file..."
       env "PYTHONPATH=src" \
       pipenv run python3 'src/pipeline/claim-verification/run.py' \
           --labels-file "$claim_label_file" \

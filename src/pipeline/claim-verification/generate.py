@@ -15,23 +15,23 @@ from tqdm import tqdm
 from common.fever_doc_db import FeverDocDB
 
 
-def get_all_claim_evidences(docs, pred_sentences):
-    for (score, evid) in pred_sentences:
-        yield evid
+def get_all_sentences(docs, weighted_sentences):
+    for (score, sentence) in weighted_sentences:
+        yield sentence
 
 
-def get_positive_claim_evidences(docs, evid_sets):
-    evidences = set()
+def get_evidence_sentences(docs, evid_sets):
+    evidence = set()
     for evid_set in evid_sets:
         for item in evid_set:
             Annotation_ID, Evidence_ID, Wikipedia_URL, sentence_ID = item
             if Wikipedia_URL is not None:
                 sent = docs[Wikipedia_URL][sentence_ID].split("\t")[1]
-                evidences.add((Wikipedia_URL, sentence_ID, sent))
-    return evidences
+                evidence.add((Wikipedia_URL, sentence_ID, sent))
+    return evidence
 
 
-def get_negative_claim_evidences(docs, evid_sets, pred_sentences):
+def get_non_evidence_sentences(docs, evid_sets, weighted_sentences):
     positive_sentences = {}
     for evid_set in evid_sets:
         for item in evid_set:
@@ -42,11 +42,11 @@ def get_negative_claim_evidences(docs, evid_sets, pred_sentences):
                 positive_sentences[Wikipedia_URL].add(sentence_ID)
 
     # sample negative examples from other sentences that are not useful evidence
-    for (score, evid) in pred_sentences:
-        page, sent_id, sent = evid
+    for (score, sentence) in weighted_sentences:
+        page, sent_id, sent = sentence
         if page in positive_sentences and sent_id in positive_sentences[page]:
             continue
-        yield evid
+        yield sentence
 
 
 def fetch_documents(db, evid_sets):
@@ -63,7 +63,7 @@ def fetch_documents(db, evid_sets):
     return docs
 
 
-def main(db_file, in_file, out_file, max_neg_evidences_per_page=None, prediction=None):
+def main(db_file, in_file, out_file, prediction=None):
     path = os.getcwd()
     outfile = open(os.path.join(path, out_file), "w+")
 
@@ -77,20 +77,20 @@ def main(db_file, in_file, out_file, max_neg_evidences_per_page=None, prediction
             id = line["id"]
             claim = line["claim"]
             evid_sets = line.get("evidence", [])
-            pred_sentences = line["predicted_sentences"]
+            weighted_sentences = line["predicted_sentences"]
 
             docs = fetch_documents(db, evid_sets)
 
             if prediction:
-                # extract all the sentences for the documents predicted for this claim
-                for page, sent_id, sentence in get_all_claim_evidences(docs, pred_sentences):
+                # extract all the sentences predicted for this claim
+                for page, sent_id, sentence in get_all_sentences(docs, weighted_sentences):
                     outfile.write("\t".join([str(id), claim, page, str(sent_id), sentence]) + "\n")
             else:
                 label = line["label"]
                 # write positive and negative evidence to file
-                for page, sent_id, sentence in get_positive_claim_evidences(docs, evid_sets):
+                for page, sent_id, sentence in get_evidence_sentences(docs, evid_sets):
                     outfile.write("\t".join([str(id), claim, page, str(sent_id), sentence, label[0]]) + "\n")
-                for page, sent_id, sentence in get_negative_claim_evidences(docs, evid_sets, pred_sentences):
+                for page, sent_id, sentence in get_non_evidence_sentences(docs, evid_sets, weighted_sentences):
                     outfile.write("\t".join([str(id), claim, page, str(sent_id), sentence, "NOT ENOUGH INFO"[0]]) + "\n")
     outfile.close()
 
@@ -102,9 +102,7 @@ if __name__ == "__main__":
     parser.add_argument("--in-file", type=str, help="input dataset")
     parser.add_argument("--out-file", type=str,
                         help="path to save output dataset")
-    parser.add_argument("--max-neg-evidences-per-page", type=int,
-                        help="number of negative evidance to in each of the page that are relevant for a claim")
     parser.add_argument("--prediction", action='store_true',
                         help="when set it generate all the sentences of the prediceted documents")
     args = parser.parse_args()
-    main(args.db_file, args.in_file, args.out_file, max_neg_evidences_per_page=args.max_neg_evidences_per_page, prediction=args.prediction)
+    main(args.db_file, args.in_file, args.out_file, prediction=args.prediction)
