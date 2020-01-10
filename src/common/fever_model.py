@@ -269,7 +269,7 @@ def evaluate(args, model, tokenizer, prefix=""):
     if args.output_mode == "classification":
         preds = np.argmax(preds, axis=1)
     elif args.output_mode == "regression":
-        preds = np.squeeze(preds)
+        preds = np.squeeze(preds, axis=1)
     result = compute_metrics(eval_task, preds, out_label_ids)
     results.update(result)
 
@@ -322,7 +322,7 @@ def predict(args, model, tokenizer):
             if args.output_mode == "classification":
                 preds = np.argmax(preds, axis=1)
             elif args.output_mode == "regression":
-                preds = np.squeeze(preds)
+                preds = np.squeeze(preds, axis=1)
             for pred in preds:
                 writer.write(str(pred) + "\n")
 
