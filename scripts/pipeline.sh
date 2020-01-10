@@ -495,6 +495,15 @@ function claim_verification() {
           --out-file "$claim_ver_file"
     fi
   done
+
+  local claim_ver_dev_eval_file="$claim_ver_path/eval.dev.txt"
+  local claim_ver_dev_file="$claim_ver_path/claims.predicted.dev.jsonl"
+  echo "● Evaluating predictions in $claim_ver_dev_file..."
+  env "PYTHONPATH=src" \
+  pipenv run python3 'src/pipeline/claim-verification/evaluate.py' \
+      --golden-file "$claim_ver_dev_file" \
+      --prediction-file "$claim_ver_dev_file" \
+  | tee "$claim_ver_dev_eval_file"
 }
 
 
