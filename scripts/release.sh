@@ -16,7 +16,7 @@ function download_from_release() {
   echo "● Downloading $download_url ..."
   wget -q --show-progress --progress=bar:force -O "$zip_file" "$download_url"
   if [ $? -eq 0 ]; then
-    unzip -o -j "$zip_file" -d "$pipeline_path"
+    unzip -o "$zip_file" -d "$pipeline_path"
     rm "$zip_file"
     return
   else
