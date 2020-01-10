@@ -331,6 +331,15 @@ function sentence_retrieval() {
           --max-sentences-per-claim $max_sentences_per_claim
     fi
   done
+
+  local sent_ret_dev_eval_file="$sent_ret_path/eval.dev.txt"
+  local sent_ret_dev_file="$sent_ret_path/sentences.predicted.dev.jsonl"
+  echo "● Evaluating predictions in $sent_ret_dev_file..."
+  env "PYTHONPATH=src" \
+  pipenv run python3 'src/pipeline/sentence-retrieval/evaluate.py' \
+      --golden-file "$sent_ret_dev_file" \
+      --evidence-file "$sent_ret_dev_file" \
+  | tee "$sent_ret_dev_eval_file"
 }
 
 
