@@ -35,6 +35,7 @@ function run() {
   local flag_data='data'
   while [[ $1 != "" ]]; do
     case "$1" in
+      --data ) flag_data=$2; shift 2;;
       --download ) flag_download_type=$2; flag_download_name=$3; shift 3;;
       -* ) shift;;
       * ) pargs+=("$1"); shift;;
