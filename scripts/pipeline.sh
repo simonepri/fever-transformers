@@ -108,8 +108,8 @@ function build_db() {
     echo '● Constructing an SQLite Database from the pre-processed Wikipedia articles...'
     env "PYTHONPATH=src" \
     pipenv run python3 'src/pipeline/build-db/run.py' \
-        "$wikipedia_path" \
-        "$db_file"
+        --data-path "$wikipedia_path" \
+        --save-path "$db_file"
   fi
 }
 
