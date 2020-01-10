@@ -40,10 +40,10 @@ def process_line_with_progress(method, line, progress=None):
 
 
 class Doc_Retrieval:
-    def __init__(self, database_path, add_claim=False, max_docs_per_claim=None):
+    def __init__(self, database_path, add_claim=False, max_pages_per_query=None):
         self.db = FeverDocDB(database_path)
         self.add_claim = add_claim
-        self.max_docs_per_claim = max_docs_per_claim
+        self.max_pages_per_query = max_pages_per_query
         self.proter_stemm = nltk.PorterStemmer()
         self.tokenizer = nltk.word_tokenize
         self.predictor = Predictor.from_path(
@@ -108,8 +108,8 @@ class Doc_Retrieval:
             while i < 12:
                 try:
                     docs = wikipedia.search(np)
-                    if self.max_docs_per_claim is not None:
-                        predicted_pages.extend(docs[: self.max_docs_per_claim])
+                    if self.max_pages_per_query is not None:
+                        predicted_pages.extend(docs[: self.max_pages_per_query])
                     else:
                         predicted_pages.extend(docs)
                 except (
@@ -202,9 +202,9 @@ def get_map_function(parallel, p=None):
     return p.imap_unordered if parallel else map
 
 
-def main(db_file, max_docs_per_claim, in_file, out_file, add_claim=True, parallel=True):
+def main(db_file, max_pages_per_query, in_file, out_file, add_claim=True, parallel=True):
     method = Doc_Retrieval(
-        database_path=db_file, add_claim=add_claim, max_docs_per_claim=max_docs_per_claim
+        database_path=db_file, add_claim=add_claim, max_pages_per_query=max_pages_per_query
     )
     processed = dict()
     path = os.getcwd()
@@ -251,7 +251,7 @@ if __name__ == "__main__":
     parser.add_argument("--in-file", type=str, help="input dataset")
     parser.add_argument("--out-file", type=str,
                         help="path to save output dataset")
-    parser.add_argument("--max-docs-per-claim", type=int,
+    parser.add_argument("--max-pages-per-query", type=int,
                         help="first k pages for wiki search")
     parser.add_argument("--parallel", type=bool, default=True)
     parser.add_argument("--add-claim", type=bool, default=True)
@@ -261,7 +261,7 @@ if __name__ == "__main__":
 
     main(
         args.db_file,
-        args.max_docs_per_claim,
+        args.max_pages_per_query,
         args.in_file,
         args.out_file,
         args.add_claim,
