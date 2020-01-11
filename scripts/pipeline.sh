@@ -470,6 +470,16 @@ function generate_submission() {
       fi
     done
   fi
+
+  local gold_dev_file="$dataset_path/dev.jsonl"
+  local sub_dev_file="$sub_path/submission.dev.jsonl"
+  local sub_dev_eval_file="$sub_path/eval.dev.txt"
+  echo "● Evaluating predictions in $sub_dev_file..."
+  env "PYTHONPATH=src" \
+  pipenv run python3 'src/pipeline/generate-submission/evaluate.py' \
+      --golden-file "$gold_dev_file" \
+      --prediction-file "$sub_dev_file" \
+  | tee "$sub_dev_eval_file"
 }
 
 

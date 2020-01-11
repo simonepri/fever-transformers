@@ -21,19 +21,16 @@ def main(prediction_file, golden_file):
 
     predictions = []
     with open(prediction_file, "r") as f:
-        for i,line in enumerate(f):
-            prediction = json.loads(line)
-            evidence = list(filter(lambda e: e[0] != None, map(lambda e: e[2:], actual[i]["evidence"][0])))
-            prediction["predicted_evidence"] = evidence
-            predictions.append(prediction)
+        for line in f:
+            predictions.append(json.loads(line))
 
     assert len(predictions) == len(actual), "The two file provided does not have the same number of lines"
 
-    score,acc,_,_,_ = fever_score(predictions, actual)
+    score,acc,precision,recall,f1 = fever_score(predictions, actual)
 
     tab = PrettyTable()
-    tab.field_names = ["OFEVER Score", "Label Accuracy"]
-    tab.add_row((round(score,4),round(acc,4)))
+    tab.field_names = ["FEVER Score", "Label Accuracy", "Evidence Precision", "Evidence Recall", "Evidence F1"]
+    tab.add_row((round(score,4),round(acc,4),round(precision,4),round(recall,4),round(f1,4)))
     print(tab)
 
 
