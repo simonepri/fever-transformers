@@ -25,7 +25,7 @@ def main(in_file, out_file):
                 prediction = {
                     "id": line["id"],
                     "predicted_label": line["predicted_label"],
-                    "predicted_evidence": line["predicted_label"]
+                    "predicted_evidence": line["predicted_evidence"]
                 }
                 json.dump(prediction, fout)
                 fout.write("\n")
