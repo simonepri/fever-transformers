@@ -48,6 +48,7 @@ function run() {
   local PATH_D_PIPELINE="$PATH_DATA/pipeline"
   local PATH_D_LOGS="$PATH_DATA/logs"
   mkdir -p "$PATH_D_PIPELINE"
+  mkdir -p "$PATH_D_LOGS"
 
   # Execute the tasks
   if [[ $flag_download_type == "model" ]] || [[ $flag_download_type == "output" ]]; then
